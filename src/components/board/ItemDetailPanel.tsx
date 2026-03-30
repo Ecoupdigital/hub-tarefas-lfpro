@@ -726,13 +726,13 @@ const ItemDetailPanel: React.FC = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
+        <Tabs defaultValue="updates" className="flex-1 flex flex-col min-h-0">
           <TabsList className="mx-5 mb-0 w-auto justify-start bg-transparent border-b border-border rounded-none p-0 h-auto">
-            <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 py-2 font-density-cell">
-              <FileText className="w-3.5 h-3.5 mr-1" /> Detalhes
-            </TabsTrigger>
             <TabsTrigger value="updates" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 py-2 font-density-cell">
               <MessageSquare className="w-3.5 h-3.5 mr-1" /> Updates
+            </TabsTrigger>
+            <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 py-2 font-density-cell">
+              <FileText className="w-3.5 h-3.5 mr-1" /> Detalhes
             </TabsTrigger>
             {timeTrackingCols.length > 0 && (
               <TabsTrigger value="time" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-3 py-2 font-density-cell">
