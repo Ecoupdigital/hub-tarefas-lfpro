@@ -1,0 +1,395 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 29 45% 71%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 33%;
+    --accent: 0 0% 94%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 72% 57%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 0% / 0.12;
+    --input: 0 0% 0% / 0.12;
+    --ring: 0 0% 0%;
+    --radius: 0.5rem;
+    /* Border-radius por tipo de elemento (Monday design system) */
+    --radius-button: 4px;   /* Botões primários, secundários, ghost */
+    --radius-input: 4px;    /* Inputs, selects, textareas */
+    --radius-nav: 6px;      /* Nav items da sidebar */
+    --radius-card: 8px;     /* Cards, modais, dropdowns, popovers */
+    --radius-avatar: 50%;   /* Avatares e ícones circulares */
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 29 45% 71%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 91%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 0 0% 0% / 0.06;
+    --sidebar-ring: 0 0% 0%;
+
+    /* Board specific tokens */
+    --board-bg: 0 0% 100%;
+    --board-header: 0 0% 100%;
+    --group-header: 0 0% 100%;
+    --cell-bg: 0 0% 100%;
+    --cell-border: 0 0% 0% / 0.12;
+    --cell-hover: 0 0% 96%;
+    --row-hover: 0 0% 88%;
+
+    /* Status colors */
+    --status-green: 160 100% 39%;
+    --status-orange: 33 98% 62%;
+    --status-red: 350 73% 58%;
+    --status-purple: 270 55% 62%;
+    --status-blue: 215 97% 67%;
+    --status-yellow: 48 80% 52%;
+    --status-gray: 0 0% 77%;
+    --status-teal: 174 72% 46%;
+    --status-pink: 340 82% 62%;
+    --status-navy: 215 80% 35%;
+
+    /* Shadow tokens — Light mode */
+    --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.10);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.14);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.18);
+    --shadow-focus: 0 0 0 3px rgba(0, 0, 0, 0.20);
+
+    /* Motion tokens — Durations */
+    --motion-productive-short: 70ms;
+    --motion-productive-medium: 100ms;
+    --motion-productive-long: 150ms;
+    --motion-expressive-short: 250ms;
+    --motion-expressive-long: 400ms;
+
+    /* Motion tokens — Timing Functions */
+    --motion-timing-enter: cubic-bezier(0, 0, 0.35, 1);
+    --motion-timing-exit: cubic-bezier(0.4, 0, 1, 1);
+    --motion-timing-transition: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Tooltip invertido — fundo escuro no light mode */
+    --tooltip-bg: 0 0% 10%;        /* hsl(0 0% 10%) = #1a1a1a */
+    --tooltip-text: 0 0% 100%;     /* branco */
+    --tooltip-border: 0 0% 0% / 0.12;
+  }
+
+  .dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 29 50% 76%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 63%;
+    --accent: 0 0% 10%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 100% / 0.12;
+    --input: 0 0% 100% / 0.12;
+    --ring: 0 0% 100%;
+
+    --sidebar-background: 0 0% 4%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 29 50% 76%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 100% / 0.06;
+    --sidebar-ring: 0 0% 100%;
+
+    --board-bg: 0 0% 0%;
+    --board-header: 0 0% 7%;
+    --group-header: 0 0% 4%;
+    --cell-bg: 0 0% 7%;
+    --cell-border: 0 0% 100% / 0.12;
+    --cell-hover: 0 0% 10%;
+    --row-hover: 0 0% 17%;
+
+    /* Shadow tokens — Dark mode (opacidade maior para contraste adequado) */
+    --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.70);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.80);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.90);
+    --shadow-focus: 0 0 0 3px rgba(255, 255, 255, 0.25);
+
+    /* Tooltip invertido — fundo claro no dark mode */
+    --tooltip-bg: 0 0% 94%;        /* hsl(0 0% 94%) = #f0f0f0 */
+    --tooltip-text: 0 0% 0%;       /* preto */
+    --tooltip-border: 0 0% 100% / 0.12;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Jost', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ===== Density System ===== */
+/* Normal = default (15-20% bigger than original, closer to Monday.com) */
+:root,
+.density-normal {
+  --density-row-h: 36px;
+  --density-row-h-sub: 32px;
+  --density-font-cell: 0.8125rem;     /* 13px */
+  --density-font-item: 0.875rem;      /* 14px */
+  --density-font-header: 0.75rem;     /* 12px */
+  --density-font-tiny: 0.6875rem;     /* 11px */
+  --density-font-badge: 0.625rem;     /* 10px */
+  --density-sidebar-font: 0.875rem;   /* 14px */
+  --density-icon: 1rem;               /* 16px */
+  --density-gap: 0.5rem;              /* 8px */
+  --density-py: 0.375rem;             /* 6px */
+  --density-px: 0.75rem;              /* 12px */
+  --density-py-item: 0.5rem;          /* 8px */
+  --density-space-y: 0.25rem;         /* 4px */
+  --density-section-gap: 0.75rem;     /* 12px */
+  --density-indent: 1.5rem;           /* 24px */
+}
+
+.density-compact {
+  --density-row-h: 34px;
+  --density-row-h-sub: 30px;
+  --density-font-cell: 0.75rem;       /* 12px */
+  --density-font-item: 0.875rem;      /* 14px */
+  --density-font-header: 0.6875rem;   /* 11px */
+  --density-font-tiny: 0.625rem;      /* 10px */
+  --density-font-badge: 0.5625rem;    /* 9px */
+  --density-sidebar-font: 0.8125rem;  /* 13px */
+  --density-icon: 0.875rem;           /* 14px */
+  --density-gap: 0.375rem;            /* 6px */
+  --density-py: 0.25rem;              /* 4px */
+  --density-px: 0.5rem;               /* 8px */
+  --density-py-item: 0.375rem;        /* 6px */
+  --density-space-y: 0.125rem;        /* 2px */
+  --density-section-gap: 0.5rem;      /* 8px */
+  --density-indent: 1.25rem;          /* 20px */
+}
+
+.density-spacious {
+  --density-row-h: 46px;
+  --density-row-h-sub: 40px;
+  --density-font-cell: 0.875rem;      /* 14px */
+  --density-font-item: 1rem;          /* 16px */
+  --density-font-header: 0.875rem;    /* 14px */
+  --density-font-tiny: 0.75rem;       /* 12px */
+  --density-font-badge: 0.6875rem;    /* 11px */
+  --density-sidebar-font: 0.9375rem;  /* 15px */
+  --density-icon: 1.125rem;           /* 18px */
+  --density-gap: 0.625rem;            /* 10px */
+  --density-py: 0.5rem;               /* 8px */
+  --density-px: 1rem;                 /* 16px */
+  --density-py-item: 0.625rem;        /* 10px */
+  --density-space-y: 0.375rem;        /* 6px */
+  --density-section-gap: 1rem;        /* 16px */
+  --density-indent: 1.75rem;          /* 28px */
+}
+
+/* Density utility classes — Font sizes */
+.density-row { min-height: var(--density-row-h); }
+.density-row-sub { min-height: var(--density-row-h-sub); }
+.font-density-cell { font-size: var(--density-font-cell); }
+.font-density-item { font-size: var(--density-font-item); }
+.font-density-header { font-size: var(--density-font-header); }
+.font-density-tiny { font-size: var(--density-font-tiny); }
+.font-density-badge { font-size: var(--density-font-badge); }
+.font-density-sidebar { font-size: var(--density-sidebar-font); }
+
+/* Density utility classes — Spacing */
+.density-py { padding-top: var(--density-py); padding-bottom: var(--density-py); }
+.density-px { padding-left: var(--density-px); padding-right: var(--density-px); }
+.density-py-item { padding-top: var(--density-py-item); padding-bottom: var(--density-py-item); }
+.density-gap { gap: var(--density-gap); }
+.density-space-y > * + * { margin-top: var(--density-space-y); }
+.density-section-gap { margin-bottom: var(--density-section-gap); }
+.density-indent { margin-left: var(--density-indent); }
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  @keyframes slide-in-right {
+    from { transform: translateX(100%); opacity: 0.5; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .animate-slide-in-right {
+    animation: slide-in-right 0.25s ease-out;
+  }
+  .animate-fade-in {
+    animation: fade-in 0.15s ease-out;
+  }
+}
+
+/* ===== Rich Text Editor (TipTap) ===== */
+.rich-editor-wrapper {
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  background: hsl(var(--muted) / 0.5);
+  overflow: hidden;
+}
+.rich-editor-wrapper:focus-within {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.15);
+}
+.rich-editor-content .ProseMirror {
+  outline: none;
+  min-height: 80px;
+  color: hsl(var(--foreground));
+}
+.rich-editor-content .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground) / 0.5);
+  pointer-events: none;
+  height: 0;
+}
+.rich-editor-content .ProseMirror strong { font-weight: 700; }
+.rich-editor-content .ProseMirror em { font-style: italic; }
+.rich-editor-content .ProseMirror u { text-decoration: underline; }
+.rich-editor-content .ProseMirror s { text-decoration: line-through; }
+.rich-editor-content .ProseMirror code {
+  background: hsl(var(--muted));
+  border-radius: 3px;
+  padding: 0.1em 0.4em;
+  font-family: monospace;
+  font-size: 0.85em;
+}
+.rich-editor-content .ProseMirror blockquote {
+  border-left: 3px solid hsl(var(--primary));
+  padding-left: 0.75em;
+  color: hsl(var(--muted-foreground));
+  margin: 0.5em 0;
+}
+.rich-editor-content .ProseMirror ul,
+.rich-editor-content .ProseMirror ol {
+  padding-left: 1.5em;
+  margin: 0.25em 0;
+}
+.rich-editor-content .ProseMirror ul { list-style-type: disc; }
+.rich-editor-content .ProseMirror ol { list-style-type: decimal; }
+
+/* Exibição de rich text nos comentários já salvos */
+.rich-text-display strong { font-weight: 700; }
+.rich-text-display em { font-style: italic; }
+.rich-text-display u { text-decoration: underline; }
+.rich-text-display s { text-decoration: line-through; }
+.rich-text-display code {
+  background: hsl(var(--muted));
+  border-radius: 3px;
+  padding: 0.1em 0.4em;
+  font-family: monospace;
+  font-size: 0.85em;
+}
+.rich-text-display blockquote {
+  border-left: 3px solid hsl(var(--primary));
+  padding-left: 0.75em;
+  color: hsl(var(--muted-foreground));
+  margin: 0.5em 0;
+}
+.rich-text-display ul { list-style-type: disc; padding-left: 1.5em; }
+.rich-text-display ol { list-style-type: decimal; padding-left: 1.5em; }
+.rich-text-display p { margin: 0.15em 0; }
+
+/* ── Monday Typography Utilities ── */
+
+/* Título principal de página (ex: nome do workspace na Home) */
+.monday-h1 {
+  font: 500 30px/42px 'Montserrat', sans-serif;
+  letter-spacing: -0.5px;
+}
+
+/* Título de seção principal (ex: nome do board no BoardHeader) */
+.monday-h2 {
+  font: 500 24px/32px 'Montserrat', sans-serif;
+  letter-spacing: -0.1px;
+}
+
+/* Subtítulo de seção (ex: descrição abaixo do nome do board) */
+.monday-h3 {
+  font: 300 24px/32px 'Montserrat', sans-serif;
+  letter-spacing: -0.1px;
+}
+
+/* Título de modal ou card (ex: títulos de CreateBoardModal, CreateColumnModal) */
+.monday-h4 {
+  font: 500 18px/24px 'Montserrat', sans-serif;
+}
+
+/* Heading de seção pequena (ex: títulos de seção na sidebar, labels de grupo) */
+.monday-h5 {
+  font: 500 16px/24px 'Jost', sans-serif;
+}
+
+/* Texto de corpo principal (ex: parágrafos, descrições longas) */
+.monday-text1 {
+  font: 400 16px/22px 'Jost', sans-serif;
+}
+
+/* Texto de célula e formulário padrão (ex: conteúdo das células, labels de input) */
+.monday-text2 {
+  font: 400 14px/20px 'Jost', sans-serif;
+}
+
+/* Texto auxiliar e metadata (ex: timestamps, contadores, breadcrumbs) */
+.monday-text3 {
+  font: 400 12px/16px 'Jost', sans-serif;
+}
+
+/* Label de campo de formulário (ex: labels de input nos modais) */
+.monday-label {
+  font: 400 14px/24px 'Jost', sans-serif;
+}
+
+/* Subtext e notas (ex: texto de placeholder, hints abaixo de inputs) */
+.monday-subtext {
+  font: 400 14px/18px 'Jost', sans-serif;
+}
+
+/* ── DS-3.5: Checkbox monocromático — override global de accent-color ── */
+/* Garante que todos os checkboxes HTML nativos usem o token --primary (preto/branco) */
+input[type="checkbox"] {
+  accent-color: hsl(var(--primary));
+}
+input[type="range"] {
+  accent-color: hsl(var(--primary));
+}
