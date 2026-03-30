@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ChevronDown, ChevronRight, Home, Search, Star, X, Clock,
-  Plus, LayoutDashboard, PanelLeftClose, PanelLeft, LogOut, MoreHorizontal,
-  Trash2, Copy, Pencil, Menu, Paintbrush, User, Settings, FolderOpen,
+  Plus, LayoutDashboard, PanelLeftClose, PanelLeft, MoreHorizontal,
+  Trash2, Copy, Pencil, Menu, Settings, FolderOpen,
   Briefcase, ChevronsDownUp, ChevronsUpDown, GripVertical, Users
 } from 'lucide-react';
 import {
@@ -17,7 +17,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useQueryClient } from '@tanstack/react-query';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useProfile, useProfiles } from '@/hooks/useSupabaseData';
+import { useProfiles } from '@/hooks/useSupabaseData';
 import { prefetchMyWorkItems } from '@/hooks/useMyWorkItems';
 import {
   useDeleteBoard, useToggleFavorite, useRenameBoard, useDuplicateBoard,
@@ -29,9 +29,6 @@ import { useBoardItemCounts } from '@/hooks/useBoardItemCounts';
 import { EmojiColorPicker } from '@/components/shared/EmojiColorPicker';
 import CreateWorkspaceModal from './modals/CreateWorkspaceModal';
 import CreateBoardModal from './modals/CreateBoardModal';
-import ThemeToggle from './ThemeToggle';
-import ThemeCustomizer from '@/components/settings/ThemeCustomizer';
-import UserProfile from '@/components/auth/UserProfile';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -44,9 +41,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
-import TrashDrawer from '@/components/workspace/TrashDrawer';
 import WorkspaceSettings from '@/components/workspace/WorkspaceSettings';
-import { useTrashItems } from '@/hooks/useTrash';
 import WorkspaceFolders from '@/components/workspace/WorkspaceFolders';
 import PermissionGate from '@/components/shared/PermissionGate';
 
@@ -263,24 +258,19 @@ const WorkspaceItem = React.memo(({ workspace, sidebarSearch, activeBoardId, ite
 
 const SidebarContent = () => {
   const { workspaces, sidebarCollapsed, setSidebarCollapsed, favorites, boards, activeBoardId, loading } = useApp();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const isMyWorkPage = location.pathname === '/my-work';
   const isTeamWorkPage = location.pathname === '/team-work';
   const displayActiveBoardId = (isMyWorkPage || isTeamWorkPage) ? null : activeBoardId;
-  const { data: profile } = useProfile(user?.id);
   const { data: allProfiles = [] } = useProfiles();
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false);
   const [sidebarSearch, setSidebarSearch] = useState('');
   const sidebarSearchRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [allWsCollapsed, setAllWsCollapsed] = useState(false);
-  const [showTrash, setShowTrash] = useState(false);
-  const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
-  const [showUserProfile, setShowUserProfile] = useState(false);
-  const { data: trashItems = [] } = useTrashItems();
 
   // Recent boards
   const { recentBoardIds, trackBoardAccess } = useRecentBoards();
@@ -361,9 +351,6 @@ const SidebarContent = () => {
     });
   };
 
-  const displayName = profile?.name || user?.email?.split('@')[0] || 'Usuario';
-  const initials = displayName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
-
   // Search empty state check
   const searchHasNoResults = sidebarSearch && workspaces.every((ws: any) =>
     !ws.name.toLowerCase().includes(sidebarSearch.toLowerCase()) &&
@@ -379,12 +366,9 @@ const SidebarContent = () => {
           </div>
           <span className="font-bold font-density-item text-sidebar-foreground">LFPro Tasks</span>
         </div>
-        <div className="flex items-center density-gap">
-          <ThemeToggle />
-          <button onClick={() => setSidebarCollapsed(true)} className="p-1 rounded hover:bg-sidebar-accent text-muted-foreground transition-colors duration-[70ms]" aria-label="Recolher sidebar">
-            <PanelLeftClose className="w-4 h-4" />
-          </button>
-        </div>
+        <button onClick={() => setSidebarCollapsed(true)} className="p-1 rounded hover:bg-sidebar-accent text-muted-foreground transition-colors duration-[70ms]" aria-label="Recolher sidebar">
+          <PanelLeftClose className="w-4 h-4" />
+        </button>
       </div>
 
       <div className="density-px py-2">
@@ -576,54 +560,7 @@ const SidebarContent = () => {
         )}
       </div>
 
-      <div className="px-2 density-py border-t border-sidebar-border density-space-y">
-        <button
-          onClick={() => setShowTrash(true)}
-          className="flex items-center w-full density-px density-py-item text-sm rounded-md hover:bg-sidebar-accent text-sidebar-foreground transition-colors duration-[70ms]"
-        >
-          <Trash2 className="w-4 h-4 mr-2.5" />
-          <span className="font-density-cell font-medium">Lixeira</span>
-          {trashItems.length > 0 && (
-            <span className="ml-auto font-density-badge bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
-              {trashItems.length}
-            </span>
-          )}
-        </button>
-      </div>
-
-      <div className="density-px py-3 border-t border-sidebar-border">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center density-gap w-full rounded-md hover:bg-sidebar-accent density-px density-py-item transition-colors duration-[70ms] group">
-              <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">{initials}</div>
-              <div className="flex-1 min-w-0 text-left">
-                <p className="font-density-cell font-medium text-sidebar-foreground truncate">{displayName}</p>
-                <p className="font-density-tiny text-muted-foreground truncate">{user?.email}</p>
-              </div>
-              <MoreHorizontal className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="start" className="w-52 mb-1">
-            <DropdownMenuItem onClick={() => setShowUserProfile(true)}>
-              <User className="w-3.5 h-3.5 mr-2" /> Meu perfil
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/settings')}>
-              <Settings className="w-3.5 h-3.5 mr-2" /> Configuracoes
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowThemeCustomizer(true)}>
-              <Paintbrush className="w-3.5 h-3.5 mr-2" /> Personalizar
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
-              <LogOut className="w-3.5 h-3.5 mr-2" /> Sair
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
       <CreateWorkspaceModal open={showCreateWorkspace} onOpenChange={setShowCreateWorkspace} />
-      <TrashDrawer open={showTrash} onOpenChange={setShowTrash} />
-      <ThemeCustomizer open={showThemeCustomizer} onOpenChange={setShowThemeCustomizer} />
     </div>
   );
 };

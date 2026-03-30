@@ -154,10 +154,10 @@
 .density-normal {
   --density-row-h: 36px;
   --density-row-h-sub: 32px;
-  --density-font-cell: 0.8125rem;     /* 13px */
-  --density-font-item: 0.875rem;      /* 14px */
-  --density-font-header: 0.75rem;     /* 12px */
-  --density-font-tiny: 0.6875rem;     /* 11px */
+  --density-font-cell: 0.875rem;      /* 14px */
+  --density-font-item: 0.9375rem;     /* 15px */
+  --density-font-header: 0.8125rem;   /* 13px */
+  --density-font-tiny: 0.75rem;       /* 12px */
   --density-font-badge: 0.625rem;     /* 10px */
   --density-sidebar-font: 0.875rem;   /* 14px */
   --density-icon: 1rem;               /* 16px */
@@ -173,12 +173,12 @@
 .density-compact {
   --density-row-h: 34px;
   --density-row-h-sub: 30px;
-  --density-font-cell: 0.75rem;       /* 12px */
-  --density-font-item: 0.875rem;      /* 14px */
-  --density-font-header: 0.6875rem;   /* 11px */
-  --density-font-tiny: 0.625rem;      /* 10px */
+  --density-font-cell: 0.8125rem;     /* 13px */
+  --density-font-item: 0.9375rem;     /* 15px */
+  --density-font-header: 0.75rem;     /* 12px */
+  --density-font-tiny: 0.6875rem;     /* 11px */
   --density-font-badge: 0.5625rem;    /* 9px */
-  --density-sidebar-font: 0.8125rem;  /* 13px */
+  --density-sidebar-font: 0.875rem;   /* 14px */
   --density-icon: 0.875rem;           /* 14px */
   --density-gap: 0.375rem;            /* 6px */
   --density-py: 0.25rem;              /* 4px */
@@ -192,12 +192,12 @@
 .density-spacious {
   --density-row-h: 46px;
   --density-row-h-sub: 40px;
-  --density-font-cell: 0.875rem;      /* 14px */
-  --density-font-item: 1rem;          /* 16px */
-  --density-font-header: 0.875rem;    /* 14px */
-  --density-font-tiny: 0.75rem;       /* 12px */
+  --density-font-cell: 0.9375rem;     /* 15px */
+  --density-font-item: 1.0625rem;     /* 17px */
+  --density-font-header: 0.9375rem;   /* 15px */
+  --density-font-tiny: 0.8125rem;     /* 13px */
   --density-font-badge: 0.6875rem;    /* 11px */
-  --density-sidebar-font: 0.9375rem;  /* 15px */
+  --density-sidebar-font: 1rem;       /* 16px */
   --density-icon: 1.125rem;           /* 18px */
   --density-gap: 0.625rem;            /* 10px */
   --density-py: 0.5rem;               /* 8px */
