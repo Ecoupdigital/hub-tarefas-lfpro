@@ -487,27 +487,63 @@ export const useUpdateColumnValue = () => {
   });
 };
 
+// Cached user session — avoids HTTP roundtrip on every mutation
+let _cachedUserId: string | null = null;
+async function getCachedUserId(): Promise<string | null> {
+  if (_cachedUserId) return _cachedUserId;
+  const { data } = await supabase.auth.getUser();
+  _cachedUserId = data.user?.id ?? null;
+  return _cachedUserId;
+}
+// Clear cache on auth state change
+supabase.auth.onAuthStateChange(() => { _cachedUserId = null; });
+
 export const useCreateItem = () => {
   const qc = useQueryClient();
   const undoRedo = useContext(UndoRedoContext);
   return useMutation({
     mutationFn: async ({ boardId, groupId, name, position }: { boardId: string; groupId: string; name: string; position?: number }) => {
-      const { data: user } = await supabase.auth.getUser();
+      const userId = await getCachedUserId();
       const { data, error } = await supabase.from('items').insert({
         board_id: boardId,
         group_id: groupId,
         name,
         position: position ?? Date.now(),
-        created_by: user.user?.id,
+        created_by: userId,
       }).select().single();
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ['items'] });
+    // Optimistic update: item appears instantly in the table
+    onMutate: async ({ boardId, groupId, name, position }) => {
+      await qc.cancelQueries({ queryKey: ['items', boardId] });
+      const prev = qc.getQueryData<any[]>(['items', boardId]);
+      const optimisticItem = {
+        id: `temp-${Date.now()}`,
+        board_id: boardId,
+        group_id: groupId,
+        name,
+        position: position ?? Date.now(),
+        state: 'active',
+        parent_item_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      if (prev) {
+        qc.setQueryData(['items', boardId], [...prev, optimisticItem]);
+      }
+      return { prev, boardId };
+    },
+    onError: (_err, _vars, context: any) => {
+      if (context?.prev) {
+        qc.setQueryData(['items', context.boardId], context.prev);
+      }
+    },
+    onSuccess: (data, _vars, context: any) => {
+      // Replace optimistic item with real data
+      qc.invalidateQueries({ queryKey: ['items', context?.boardId] });
       if (!data?.id || !data?.board_id) return;
 
-      // Registrar criacao no undo stack
       if (undoRedo) {
         undoRedo.pushAction({
           type: 'item_create',
@@ -518,41 +554,29 @@ export const useCreateItem = () => {
         });
       }
 
-      // Fire-and-forget: engine de automacoes — dispara trigger item_created
+      // Fire-and-forget: automations + activity log (non-blocking)
       executeAutomations({
         type: 'item_created',
         boardId: data.board_id,
         itemId: data.id,
         groupId: data.group_id,
-      }).catch((err) => {
-        console.error('[AutomationEngine] Uncaught error in executeAutomations (item_created):', err);
-      });
+      }).catch(() => {});
 
-      // Fire-and-forget: registro no activity_log nao bloqueia a mutation
-      supabase.auth.getUser().then(({ data: userData }) => {
-        const userId = userData.user?.id;
+      getCachedUserId().then(userId => {
         if (!userId) return;
-        supabase.from('activity_log').insert({
+        supabase.from('activity_log' as any).insert({
           board_id: data.board_id,
           user_id: userId,
           action: 'item_created',
           entity_type: 'item',
           entity_id: data.id,
           item_id: data.id,
-          old_value: null,
           new_value: { name: data.name },
-          metadata: {
-            triggered_by: 'user',
-            item_name: data.name,
-          },
+          metadata: { triggered_by: 'user', item_name: data.name },
         }).then(() => {
           qc.invalidateQueries({ queryKey: ['activity_log', data.board_id] });
-        }).catch((err) => {
-          console.error('Falha ao registrar atividade (item_created):', err);
         });
-      }).catch((err) => {
-        console.error('Falha ao obter usuario para activity_log:', err);
-      });
+      }).catch(() => {});
     },
   });
 };
