@@ -12,13 +12,13 @@ interface BrandingConfig {
 
 const DEFAULT_BRANDING: BrandingConfig = {
   logoUrl: null,
-  primaryColor: '#5F3FFF',
+  primaryColor: '#C4A472',
   instanceName: 'LFPro Tasks',
 };
 
 const PRESET_COLORS = [
-  '#5F3FFF', '#00C875', '#FF5AC4', '#FF642E', '#579BFC',
-  '#FDAB3D', '#E44258', '#A25DDC', '#037F4C', '#0073EA',
+  '#C4A472', '#B89A6B', '#A68856', '#00C875', '#579BFC',
+  '#FDAB3D', '#FF642E', '#E44258', '#A25DDC', '#0073EA',
 ];
 
 const BrandingSettings: React.FC = () => {
@@ -43,8 +43,13 @@ const BrandingSettings: React.FC = () => {
           .single();
         const settings = (data as any)?.settings || {};
         if (settings.branding) {
-          setBranding({ ...DEFAULT_BRANDING, ...settings.branding });
+          const merged = { ...DEFAULT_BRANDING, ...settings.branding };
+          setBranding(merged);
           setPreviewLogo(settings.branding.logoUrl || null);
+          // Apply saved color on load
+          if (merged.primaryColor) {
+            document.documentElement.style.setProperty('--brand-primary', merged.primaryColor);
+          }
         }
       } catch {
         // ignore

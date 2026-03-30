@@ -14,13 +14,13 @@ interface ThemeColor {
 }
 
 export const PRESET_COLORS: ThemeColor[] = [
+  { name: 'Gold (LFPro)', hsl: '29 45% 71%', preview: '#C4A472' },
   { name: 'Azul', hsl: '211 100% 46%', preview: '#0073EA' },
   { name: 'Roxo', hsl: '270 55% 62%', preview: '#9b59b6' },
   { name: 'Verde', hsl: '160 100% 39%', preview: '#00c896' },
   { name: 'Laranja', hsl: '33 98% 55%', preview: '#f59e0b' },
   { name: 'Rosa', hsl: '340 82% 62%', preview: '#ec4899' },
   { name: 'Vermelho', hsl: '0 72% 57%', preview: '#e74c3c' },
-  { name: 'Amarelo', hsl: '48 80% 52%', preview: '#eab308' },
   { name: 'Ciano', hsl: '190 90% 50%', preview: '#06b6d4' },
 ];
 
@@ -73,7 +73,7 @@ interface ThemeCustomizerProps {
 
 const ThemeCustomizer: React.FC<ThemeCustomizerProps> = ({ open, onOpenChange }) => {
   const [selectedColor, setSelectedColor] = useState<string>(() => {
-    return localStorage.getItem(THEME_COLOR_KEY) || '211 100% 46%';
+    return localStorage.getItem(THEME_COLOR_KEY) || '29 45% 71%';
   });
   const [selectedDensity, setSelectedDensity] = useState<Density>(() => {
     return (localStorage.getItem(THEME_DENSITY_KEY) as Density) || 'normal';

@@ -76,7 +76,7 @@ const AppearanceSettings = () => {
     () => (localStorage.getItem(THEME_MODE_KEY) as ThemeMode) || 'auto'
   );
   const [selectedColor, setSelectedColor] = useState<string>(
-    () => localStorage.getItem(THEME_COLOR_KEY) || '211 100% 46%'
+    () => localStorage.getItem(THEME_COLOR_KEY) || '29 45% 71%'
   );
   const [customHex, setCustomHex] = useState('');
   const [density, setDensityState] = useState<Density>(
