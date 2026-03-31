@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, GripVertical } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useFilter } from '@/context/FilterContext';
 import { useSelection } from '@/context/SelectionContext';
@@ -375,6 +375,20 @@ const BoardTable: React.FC = () => {
 
   const renderDragOverlay = (activeId: string | null) => {
     if (!activeId) return null;
+
+    // Column drag overlay
+    if (activeId.startsWith('col-')) {
+      const colId = activeId.replace('col-', '');
+      const col = activeBoard.columns.find(c => c.id === colId);
+      if (!col) return null;
+      return (
+        <div className="flex items-center gap-1.5 px-3 py-1.5 border border-primary/30 bg-card shadow-lg rounded opacity-90">
+          <GripVertical className="w-3.5 h-3.5 text-primary rotate-90" />
+          <span className="font-density-header font-semibold text-muted-foreground uppercase tracking-wider">{col.title}</span>
+        </div>
+      );
+    }
+
     const item = allItemsMap.get(activeId);
     if (!item) return null;
     return <DragOverlayRow item={item} columns={activeBoard.columns} />;

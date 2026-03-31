@@ -190,18 +190,19 @@ export const GroupSection: React.FC<{ group: Group; columns: Column[]; boardId: 
                         role="columnheader"
                         className={`relative flex items-center justify-center py-1.5 border-r border-cell-border bg-board-header hover:bg-muted/50 transition-colors group/colheader ${isDragging ? 'opacity-50 ring-1 ring-primary/30' : ''}`}
                         style={{ ...style, minWidth: getColumnWidth(col), width: getColumnWidth(col) }}
-                        onClick={() => setEditColumn({ id: col.id, title: col.title, type: col.type, settings: col.settings, boardId })}
                       >
                         <div
-                          className="flex items-center cursor-grab active:cursor-grabbing opacity-0 group-hover/colheader:opacity-60 mr-0.5 flex-shrink-0"
+                          className="flex items-center cursor-grab active:cursor-grabbing opacity-0 group-hover/colheader:opacity-60 mr-0.5 flex-shrink-0 p-1"
                           {...attributes}
                           {...listeners}
-                          onClick={e => e.stopPropagation()}
                           title="Arrastar coluna"
                         >
-                          <GripVertical className="w-3 h-3 text-muted-foreground rotate-90" />
+                          <GripVertical className="w-3.5 h-3.5 text-muted-foreground rotate-90" />
                         </div>
-                        <span className="font-density-header font-semibold text-muted-foreground truncate px-1 uppercase tracking-wider cursor-pointer">{col.title}</span>
+                        <span
+                          className="font-density-header font-semibold text-muted-foreground truncate px-1 uppercase tracking-wider cursor-pointer"
+                          onClick={() => setEditColumn({ id: col.id, title: col.title, type: col.type, settings: col.settings, boardId })}
+                        >{col.title}</span>
                         <span className="opacity-0 group-hover/colheader:opacity-100 transition-opacity">
                           <QuickColumnFilter column={col} />
                         </span>
