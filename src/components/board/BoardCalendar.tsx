@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useUpdateColumnValue, useCreateItem } from '@/hooks/useSupabaseData';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval,
   format, isSameMonth, isToday, isSameDay, parseISO, addMonths, subMonths,
-  startOfISOWeek, endOfISOWeek, addWeeks, subWeeks
+  addWeeks, subWeeks
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -19,7 +19,21 @@ const BoardCalendar: React.FC = () => {
   const createItem = useCreateItem();
   const [dragItem, setDragItem] = useState<string | null>(null);
 
-  const dateCol = activeBoard?.columns.find(c => c.type === 'date');
+  const dateColumns = useMemo(() => {
+    if (!activeBoard) return [];
+    return activeBoard.columns.filter(c => c.type === 'date');
+  }, [activeBoard]);
+
+  const [selectedDateColId, setSelectedDateColId] = useState<string | null>(null);
+
+  const dateCol = useMemo(() => {
+    if (dateColumns.length === 0) return null;
+    if (selectedDateColId) {
+      const found = dateColumns.find(c => c.id === selectedDateColId);
+      if (found) return found;
+    }
+    return dateColumns[0];
+  }, [dateColumns, selectedDateColId]);
 
   const allItems = useMemo(() => {
     if (!activeBoard) return [];
@@ -132,9 +146,27 @@ const BoardCalendar: React.FC = () => {
           </h2>
           <button onClick={() => nav(1)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors"><ChevronRight className="w-4 h-4" /></button>
         </div>
-        <div className="flex items-center bg-muted rounded-md p-0.5">
-          <button onClick={() => setCalView('month')} className={`px-2.5 py-1 rounded font-density-cell font-medium transition-colors ${calView === 'month' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>Mês</button>
-          <button onClick={() => setCalView('week')} className={`px-2.5 py-1 rounded font-density-cell font-medium transition-colors ${calView === 'week' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>Semana</button>
+        <div className="flex items-center gap-2">
+          {/* Date column selector */}
+          {dateColumns.length > 1 && (
+            <div className="flex items-center gap-1.5 bg-muted rounded-md px-2.5 py-1">
+              <CalendarDays className="w-3.5 h-3.5 text-muted-foreground" />
+              <select
+                value={dateCol.id}
+                onChange={e => setSelectedDateColId(e.target.value)}
+                className="bg-transparent font-density-cell font-medium text-foreground outline-none cursor-pointer border-none pr-1"
+              >
+                {dateColumns.map(col => (
+                  <option key={col.id} value={col.id}>{col.title}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {/* Month / Week toggle */}
+          <div className="flex items-center bg-muted rounded-md p-0.5">
+            <button onClick={() => setCalView('month')} className={`px-2.5 py-1 rounded font-density-cell font-medium transition-colors ${calView === 'month' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>Mês</button>
+            <button onClick={() => setCalView('week')} className={`px-2.5 py-1 rounded font-density-cell font-medium transition-colors ${calView === 'week' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>Semana</button>
+          </div>
         </div>
       </div>
 
