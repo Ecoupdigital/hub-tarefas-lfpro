@@ -217,7 +217,7 @@ const BoardCards: React.FC = () => {
   const allItems = activeBoard.groups.flatMap(g => g.items);
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto bg-board-bg">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">

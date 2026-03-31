@@ -499,7 +499,7 @@ const BoardDashboard: React.FC = () => {
 
   return (
     <DashboardFilterProvider>
-    <div ref={containerRef} className="flex-1 overflow-y-auto">
+    <div ref={containerRef} className="flex-1 overflow-y-auto bg-board-bg">
       <DashboardFilterBanner />
       {/* Header with Edit Mode toggle and Add Widget button */}
       <div className="flex justify-end gap-1.5 mb-2">

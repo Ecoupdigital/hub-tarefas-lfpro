@@ -146,7 +146,7 @@ const BoardCalendar: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 overflow-auto p-4">
+    <div className="flex-1 overflow-auto p-4 bg-board-bg">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <button onClick={() => nav(-1)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors"><ChevronLeft className="w-4 h-4" /></button>

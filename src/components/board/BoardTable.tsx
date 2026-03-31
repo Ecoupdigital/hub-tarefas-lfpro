@@ -362,7 +362,7 @@ const BoardTable: React.FC = () => {
   const groupDndIds = activeBoard.groups.map(g => `grp-${g.id}`);
 
   return (
-    <div className="flex-1 overflow-auto scrollbar-thin" role="grid" aria-label="Tabela do board">
+    <div className="flex-1 overflow-auto scrollbar-thin bg-board-bg" role="grid" aria-label="Tabela do board">
       <DndProvider onDragEnd={handleDragEnd} onDragOver={handleDragOver} renderOverlay={renderDragOverlay}>
         <div className="min-w-max">
           <SortableContext items={groupDndIds} strategy={verticalListSortingStrategy}>

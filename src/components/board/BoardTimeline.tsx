@@ -367,7 +367,7 @@ const BoardTimeline: React.FC = () => {
         </div>
 
         {/* Right panel - timeline */}
-        <div className="flex-1 overflow-auto" ref={scrollRef}>
+        <div className="flex-1 overflow-auto bg-board-bg" ref={scrollRef}>
           <div style={{ width: totalWidth, minHeight: '100%' }} className="relative">
             {/* Timeline header */}
             <div
