@@ -120,8 +120,23 @@ const TopNavBar: React.FC = () => {
   return (
     <>
       <header className="h-14 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-4 shrink-0">
-        {/* Left side */}
+        {/* Left side — Logo + brand */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground text-xs font-bold">L</span>
+            </div>
+            <span className="font-bold font-density-item text-sidebar-foreground">LFPro Tasks</span>
+          </div>
+          {/* Active timer */}
+          {activeTimer && (
+            <ClockDisplay activeTimer={activeTimer} onClickItem={setSelectedItem} />
+          )}
+        </div>
+
+        {/* Right side */}
         <div className="flex items-center gap-0.5">
+          {/* Undo/Redo */}
           <button
             onClick={() => undo()}
             disabled={!canUndo}
@@ -140,14 +155,9 @@ const TopNavBar: React.FC = () => {
           >
             <Redo2 className="w-4 h-4" />
           </button>
-          {/* Global active timer indicator */}
-          {activeTimer && (
-            <ClockDisplay activeTimer={activeTimer} onClickItem={setSelectedItem} />
-          )}
-        </div>
 
-        {/* Right side */}
-        <div className="flex items-center gap-0.5">
+          <div className="h-5 w-px bg-sidebar-border mx-1" />
+
           {/* Trash */}
           <button
             onClick={() => setShowTrash(true)}

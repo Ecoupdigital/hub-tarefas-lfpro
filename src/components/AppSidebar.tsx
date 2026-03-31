@@ -359,20 +359,8 @@ const SidebarContent = () => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground text-xs font-bold">L</span>
-          </div>
-          <span className="font-bold font-density-item text-sidebar-foreground">LFPro Tasks</span>
-        </div>
-        <button onClick={() => setSidebarCollapsed(true)} className="p-1 rounded hover:bg-sidebar-accent text-muted-foreground transition-colors duration-[70ms]" aria-label="Recolher sidebar">
-          <PanelLeftClose className="w-4 h-4" />
-        </button>
-      </div>
-
-      <div className="density-px py-2">
-        <div className="flex items-center density-gap bg-muted rounded-md density-px density-py">
+      <div className="density-px py-2 flex items-center gap-1.5">
+        <div className="flex-1 flex items-center density-gap bg-muted rounded-md density-px density-py">
           <Search className="w-3.5 h-3.5 text-muted-foreground" />
           <input ref={sidebarSearchRef} value={sidebarSearch} onChange={(e) => setSidebarSearch(e.target.value)}
             onKeyDown={e => { if (e.key === 'Escape') setSidebarSearch(''); }}
@@ -383,6 +371,9 @@ const SidebarContent = () => {
             </button>
           )}
         </div>
+        <button onClick={() => setSidebarCollapsed(true)} className="p-1.5 rounded hover:bg-sidebar-accent text-muted-foreground transition-colors flex-shrink-0" aria-label="Recolher sidebar">
+          <PanelLeftClose className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       <div className="px-2 density-space-y">
