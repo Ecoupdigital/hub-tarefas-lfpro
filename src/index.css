@@ -123,13 +123,14 @@
     --header-background: 0 0% 3%;
     --header-border: 0 0% 100% / 0.10;
 
-    --board-bg: 0 0% 0%;
-    --board-header: 0 0% 5%;
-    --group-header: 0 0% 4%;
-    --cell-bg: 0 0% 7%;
-    --cell-border: 0 0% 100% / 0.12;
-    --cell-hover: 0 0% 10%;
-    --row-hover: 0 0% 17%;
+    /* Board — levemente mais claro que header/sidebar para separação visual */
+    --board-bg: 0 0% 8%;
+    --board-header: 0 0% 10%;
+    --group-header: 0 0% 9%;
+    --cell-bg: 0 0% 11%;
+    --cell-border: 0 0% 100% / 0.10;
+    --cell-hover: 0 0% 14%;
+    --row-hover: 0 0% 19%;
 
     /* Shadow tokens — Dark mode (opacidade maior para contraste adequado) */
     --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.70);
