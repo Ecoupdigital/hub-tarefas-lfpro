@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   Shield, Users, Trash2, Download, AlertTriangle, Search,
   Clock, Lock, Monitor, Palette, UserCheck, UserX, Loader2,
-  ChevronDown,
+  ChevronDown, UserPlus, Mail, X,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -46,6 +46,10 @@ const UserManagementTab: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState('');
   const [loadingRoles, setLoadingRoles] = useState(false);
   const [removeUserId, setRemoveUserId] = useState<string | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   // Load user roles AND statuses from profiles.preferences.is_active
   React.useEffect(() => {
@@ -149,6 +153,27 @@ const UserManagementTab: React.FC = () => {
     }
   };
 
+  const handleInviteUser = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviteLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('invite-user', {
+        body: { email: inviteEmail.trim(), name: inviteName.trim() || undefined },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Convite enviado para ${inviteEmail.trim()}`);
+      setInviteEmail('');
+      setInviteName('');
+      setShowInviteModal(false);
+      refetchProfiles();
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao enviar convite');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
   const getInitials = (name: string) =>
     name
       .split(' ')
@@ -189,6 +214,13 @@ const UserManagementTab: React.FC = () => {
           <option value="viewer">Visualizador</option>
           <option value="guest">Convidado</option>
         </select>
+        <button
+          onClick={() => setShowInviteModal(true)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium transition-colors whitespace-nowrap"
+        >
+          <UserPlus className="w-3.5 h-3.5" />
+          Convidar
+        </button>
       </div>
 
       {/* Users table */}
@@ -346,6 +378,75 @@ const UserManagementTab: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Invite User Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowInviteModal(false)}
+          />
+          <div className="relative bg-background border border-border rounded-lg shadow-lg w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="flex items-center gap-2 font-density-cell font-semibold text-foreground">
+                <UserPlus className="w-4 h-4" />
+                Convidar usuario
+              </h3>
+              <button
+                onClick={() => setShowInviteModal(false)}
+                className="p-1 rounded hover:bg-muted/50 text-muted-foreground transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-foreground">Email *</label>
+                <div className="relative">
+                  <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <input
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="email@exemplo.com"
+                    type="email"
+                    className="w-full pl-8 pr-3 py-2 rounded-md border border-border bg-background text-foreground font-density-cell outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleInviteUser();
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-foreground">Nome (opcional)</label>
+                <input
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                  placeholder="Nome do usuario"
+                  className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground font-density-cell outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleInviteUser();
+                  }}
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleInviteUser}
+              disabled={inviteLoading || !inviteEmail.trim()}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 font-density-cell font-medium transition-colors disabled:opacity-50"
+            >
+              {inviteLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <UserPlus className="w-3.5 h-3.5" />
+              )}
+              {inviteLoading ? 'Enviando...' : 'Enviar convite'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

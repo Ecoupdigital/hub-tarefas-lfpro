@@ -52,11 +52,12 @@ const InviteModal: React.FC<InviteModalProps> = ({ open, onOpenChange, boardId }
           }
         );
       } else {
-        // User doesn't exist - send invite via Supabase auth
-        const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email.trim());
-        if (inviteError) {
-          // If admin API not available, show message to the user
-          toast.error('Usuario nao encontrado. Envie o link de cadastro manualmente.');
+        // User doesn't exist - send invite via Edge Function
+        const { data: inviteData, error: inviteError } = await supabase.functions.invoke('invite-user', {
+          body: { email: email.trim() },
+        });
+        if (inviteError || inviteData?.error) {
+          toast.error(inviteData?.error || 'Usuario nao encontrado. Envie o link de cadastro manualmente.');
         } else {
           toast.success(`Convite enviado para ${email}`);
           setEmail('');
