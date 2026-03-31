@@ -517,7 +517,7 @@ const FolderNode: React.FC<FolderNodeProps> = ({
       </ContextMenu>
 
       {expanded && (
-        <div className="density-indent density-space-y">
+        <div className="ml-4 pl-2 border-l-2 border-sidebar-border/30 density-space-y">
           {nestedFolders.map((childFolder) => (
             <FolderNode
               key={childFolder.id}
@@ -789,9 +789,9 @@ const WorkspaceFolders: React.FC<WorkspaceFoldersProps> = ({
           />
         ))}
 
-        {/* Separator between folders and root boards */}
+        {/* Spacing between folders and root boards */}
         {rootFolders.length > 0 && rootBoards.length > 0 && (
-          <div className="border-t border-sidebar-border/50 my-1.5" />
+          <div className="h-2" />
         )}
 
         {/* Root-level boards (sortable) */}
