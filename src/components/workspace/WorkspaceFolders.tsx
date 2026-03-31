@@ -6,8 +6,8 @@ import {
 import { useTab } from '@/context/TabContext';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
-  useDroppable,
-  type DragEndEvent,
+  useDroppable, DragOverlay,
+  type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
@@ -278,7 +278,7 @@ const SortableBoardItem = (props: BoardItemProps & { id: string }) => {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.3 : 1,
   };
 
   return (
@@ -570,6 +570,21 @@ const FolderNode: React.FC<FolderNodeProps> = ({
   );
 };
 
+/** Droppable root zone for dropping boards out of folders */
+const RootDropZone: React.FC<{ isActive: boolean; children: React.ReactNode }> = ({ isActive, children }) => {
+  const { setNodeRef, isOver } = useDroppable({ id: 'root-zone' });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`min-h-[40px] rounded-md transition-colors ${
+        isActive && isOver ? 'bg-primary/5 ring-1 ring-primary/20' : ''
+      }`}
+    >
+      {children}
+    </div>
+  );
+};
+
 const WorkspaceFolders: React.FC<WorkspaceFoldersProps> = ({
   workspaceId,
   boards,
@@ -598,6 +613,7 @@ const WorkspaceFolders: React.FC<WorkspaceFoldersProps> = ({
   const [newFolderName, setNewFolderName] = useState('');
   const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
   const [boardToDelete, setBoardToDelete] = useState<string | null>(null);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
   const rootFolders = folders.filter((f) => !f.parent_id);
   const rootBoards = boards.filter(
@@ -700,21 +716,36 @@ const WorkspaceFolders: React.FC<WorkspaceFoldersProps> = ({
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragId(event.active.id as string);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
+    setActiveDragId(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
+    const boardId = active.id as string;
     const overId = over.id as string;
+    const draggedBoard = boards.find(b => b.id === boardId);
+
+    // Drop on root zone -> remove from folder
+    if (overId === 'root-zone') {
+      if (draggedBoard?.folder_id) {
+        handleMoveBoard(boardId, null);
+      }
+      return;
+    }
 
     // Dropped on a folder droppable
     if (overId.startsWith('folder-')) {
       const folderId = overId.replace('folder-', '');
-      handleMoveBoard(active.id as string, folderId);
+      handleMoveBoard(boardId, folderId);
       return;
     }
 
-    // Reorder within root boards
-    const oldIndex = rootBoards.findIndex(b => b.id === active.id);
+    // Drop on another board -> reorder within root boards
+    const oldIndex = rootBoards.findIndex(b => b.id === boardId);
     const newIndex = rootBoards.findIndex(b => b.id === overId);
     if (oldIndex === -1 || newIndex === -1) return;
 
@@ -723,7 +754,7 @@ const WorkspaceFolders: React.FC<WorkspaceFoldersProps> = ({
     const nextBoard = newIndex < reordered.length - 1 ? reordered[newIndex + 1] : undefined;
     const newPosition = calcMidPosition(prevBoard?.position, nextBoard?.position);
 
-    handleReorderBoard(active.id as string, newPosition);
+    handleReorderBoard(boardId, newPosition);
   };
 
   return (
@@ -759,7 +790,7 @@ const WorkspaceFolders: React.FC<WorkspaceFoldersProps> = ({
       )}
 
       {/* Unified DndContext for drag-to-folder and board reordering */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {/* Folder tree */}
         {rootFolders.map((folder) => (
           <FolderNode
@@ -794,26 +825,36 @@ const WorkspaceFolders: React.FC<WorkspaceFoldersProps> = ({
           <div className="h-2" />
         )}
 
-        {/* Root-level boards (sortable) */}
-        <SortableBoardList
-          boards={rootBoards}
-          activeBoardId={activeBoardId}
-          onBoardClick={onBoardClick}
-          onDeleteBoard={(id) => setBoardToDelete(id)}
-          onRenameBoard={handleRenameBoard}
-          onDuplicateBoard={handleDuplicateBoard}
-          onMoveBoard={handleMoveBoard}
-          folders={foldersFlat}
-          itemCounts={itemCounts}
-          profiles={profiles}
-          favorites={favorites}
-          onToggleFavorite={onToggleFavorite}
-          onUpdateAppearance={handleUpdateAppearance}
-          searchQuery={searchQuery}
-          onReorderBoard={handleReorderBoard}
-          otherWorkspaces={otherWorkspaces}
-          onMoveBoardToWorkspace={onMoveBoardToWorkspace}
-        />
+        {/* Root-level boards (sortable) with droppable zone */}
+        <RootDropZone isActive={!!activeDragId}>
+          <SortableBoardList
+            boards={rootBoards}
+            activeBoardId={activeBoardId}
+            onBoardClick={onBoardClick}
+            onDeleteBoard={(id) => setBoardToDelete(id)}
+            onRenameBoard={handleRenameBoard}
+            onDuplicateBoard={handleDuplicateBoard}
+            onMoveBoard={handleMoveBoard}
+            folders={foldersFlat}
+            itemCounts={itemCounts}
+            profiles={profiles}
+            favorites={favorites}
+            onToggleFavorite={onToggleFavorite}
+            onUpdateAppearance={handleUpdateAppearance}
+            searchQuery={searchQuery}
+            onReorderBoard={handleReorderBoard}
+            otherWorkspaces={otherWorkspaces}
+            onMoveBoardToWorkspace={onMoveBoardToWorkspace}
+          />
+        </RootDropZone>
+
+        <DragOverlay>
+          {activeDragId ? (
+            <div className="px-3 py-1.5 bg-card border border-primary/30 rounded-md shadow-lg text-sm font-medium">
+              {boards.find(b => b.id === activeDragId)?.name || 'Board'}
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
 
       <AlertDialog open={!!boardToDelete} onOpenChange={() => setBoardToDelete(null)}>
