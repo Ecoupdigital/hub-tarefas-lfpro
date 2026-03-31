@@ -119,7 +119,7 @@ const TopNavBar: React.FC = () => {
 
   return (
     <>
-      <header className="h-14 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-4 shrink-0">
+      <header className="h-14 border-b flex items-center justify-between px-4 shrink-0" style={{ backgroundColor: 'hsl(var(--header-background))', borderColor: 'hsl(var(--header-border))' }}>
         {/* Left side — Logo + brand */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
