@@ -188,27 +188,28 @@ export const GroupSection: React.FC<{ group: Group; columns: Column[]; boardId: 
                       <div
                         ref={setNodeRef}
                         role="columnheader"
-                        className={`relative flex items-center justify-center py-1.5 border-r border-cell-border bg-board-header hover:bg-muted/50 transition-colors group/colheader ${isDragging ? 'opacity-50 ring-1 ring-primary/30' : ''}`}
+                        className={`relative flex items-center justify-center py-1.5 border-r border-cell-border bg-board-header hover:bg-muted/50 transition-colors group/colheader cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50 ring-1 ring-primary/30' : ''}`}
                         style={{ ...style, minWidth: getColumnWidth(col), width: getColumnWidth(col) }}
+                        {...attributes}
+                        {...listeners}
                       >
                         <div
-                          className="flex items-center cursor-grab active:cursor-grabbing opacity-0 group-hover/colheader:opacity-60 mr-0.5 flex-shrink-0 p-1"
-                          {...attributes}
-                          {...listeners}
-                          title="Arrastar coluna"
+                          className="flex items-center opacity-0 group-hover/colheader:opacity-60 mr-0.5 flex-shrink-0"
                         >
                           <GripVertical className="w-3.5 h-3.5 text-muted-foreground rotate-90" />
                         </div>
                         <span
                           className="font-density-header font-semibold text-muted-foreground truncate px-1 uppercase tracking-wider cursor-pointer"
+                          onPointerDown={e => e.stopPropagation()}
                           onClick={() => setEditColumn({ id: col.id, title: col.title, type: col.type, settings: col.settings, boardId })}
                         >{col.title}</span>
-                        <span className="opacity-0 group-hover/colheader:opacity-100 transition-opacity">
+                        <span className="opacity-0 group-hover/colheader:opacity-100 transition-opacity" onPointerDown={e => e.stopPropagation()}>
                           <QuickColumnFilter column={col} />
                         </span>
                         {/* Resize handle */}
                         <div
                           className="absolute right-0 top-0 h-full w-2 cursor-col-resize z-10 opacity-0 group-hover/colheader:opacity-100 hover:opacity-100 flex items-center justify-center transition-opacity"
+                          onPointerDown={e => e.stopPropagation()}
                           onMouseDown={e => {
                             e.stopPropagation();
                             e.preventDefault();
