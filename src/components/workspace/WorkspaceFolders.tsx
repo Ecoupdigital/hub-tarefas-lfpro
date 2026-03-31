@@ -6,6 +6,7 @@ import {
 import { useTab } from '@/context/TabContext';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  useDroppable,
   type DragEndEvent,
 } from '@dnd-kit/core';
 import {
@@ -320,55 +321,33 @@ const SortableBoardList: React.FC<SortableBoardListProps> = ({
   onToggleFavorite, onUpdateAppearance, searchQuery, onReorderBoard,
   otherWorkspaces, onMoveBoardToWorkspace,
 }) => {
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = boards.findIndex(b => b.id === active.id);
-    const newIndex = boards.findIndex(b => b.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const reordered = arrayMove(boards, oldIndex, newIndex);
-    const prevBoard = newIndex > 0 ? reordered[newIndex - 1] : undefined;
-    const nextBoard = newIndex < reordered.length - 1 ? reordered[newIndex + 1] : undefined;
-    const newPosition = calcMidPosition(prevBoard?.position, nextBoard?.position);
-
-    onReorderBoard(active.id as string, newPosition);
-  };
-
   if (boards.length === 0) return null;
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={boards.map(b => b.id)} strategy={verticalListSortingStrategy}>
-        {boards.map((board) => (
-          <SortableBoardItem
-            key={board.id}
-            id={board.id}
-            board={board}
-            activeBoardId={activeBoardId}
-            onBoardClick={onBoardClick}
-            onDeleteBoard={onDeleteBoard}
-            onRenameBoard={onRenameBoard}
-            onDuplicateBoard={onDuplicateBoard}
-            onMoveBoard={onMoveBoard}
-            folders={folders}
-            itemCount={itemCounts?.[board.id]}
-            profiles={profiles}
-            isFavorite={favorites?.some((f: any) => f.board_id === board.id)}
-            onToggleFavorite={onToggleFavorite}
-            onUpdateAppearance={onUpdateAppearance}
-            searchQuery={searchQuery}
-            otherWorkspaces={otherWorkspaces}
-            onMoveBoardToWorkspace={onMoveBoardToWorkspace}
-          />
-        ))}
-      </SortableContext>
-    </DndContext>
+    <SortableContext items={boards.map(b => b.id)} strategy={verticalListSortingStrategy}>
+      {boards.map((board) => (
+        <SortableBoardItem
+          key={board.id}
+          id={board.id}
+          board={board}
+          activeBoardId={activeBoardId}
+          onBoardClick={onBoardClick}
+          onDeleteBoard={onDeleteBoard}
+          onRenameBoard={onRenameBoard}
+          onDuplicateBoard={onDuplicateBoard}
+          onMoveBoard={onMoveBoard}
+          folders={folders}
+          itemCount={itemCounts?.[board.id]}
+          profiles={profiles}
+          isFavorite={favorites?.some((f: any) => f.board_id === board.id)}
+          onToggleFavorite={onToggleFavorite}
+          onUpdateAppearance={onUpdateAppearance}
+          searchQuery={searchQuery}
+          otherWorkspaces={otherWorkspaces}
+          onMoveBoardToWorkspace={onMoveBoardToWorkspace}
+        />
+      ))}
+    </SortableContext>
   );
 };
 
@@ -447,33 +426,19 @@ const FolderNode: React.FC<FolderNodeProps> = ({
     setRenaming(false);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.currentTarget.classList.add('bg-primary/10');
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.currentTarget.classList.remove('bg-primary/10');
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.currentTarget.classList.remove('bg-primary/10');
-    const boardId = e.dataTransfer.getData('boardId');
-    if (boardId) {
-      onMoveBoard(boardId, folder.id);
-    }
-  };
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+    id: `folder-${folder.id}`,
+  });
 
   return (
     <div className="density-space-y">
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div
-            className="flex items-center group/folder rounded-md transition-colors"
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            ref={setDroppableRef}
+            className={`flex items-center group/folder rounded-md transition-colors ${
+              isOver ? 'ring-2 ring-primary bg-primary/5' : ''
+            }`}
           >
             {renaming ? (
               <input
@@ -731,6 +696,36 @@ const WorkspaceFolders: React.FC<WorkspaceFoldersProps> = ({
 
   const foldersFlat = folders.map(f => ({ id: f.id, name: f.name }));
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const overId = over.id as string;
+
+    // Dropped on a folder droppable
+    if (overId.startsWith('folder-')) {
+      const folderId = overId.replace('folder-', '');
+      handleMoveBoard(active.id as string, folderId);
+      return;
+    }
+
+    // Reorder within root boards
+    const oldIndex = rootBoards.findIndex(b => b.id === active.id);
+    const newIndex = rootBoards.findIndex(b => b.id === overId);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(rootBoards, oldIndex, newIndex);
+    const prevBoard = newIndex > 0 ? reordered[newIndex - 1] : undefined;
+    const nextBoard = newIndex < reordered.length - 1 ? reordered[newIndex + 1] : undefined;
+    const newPosition = calcMidPosition(prevBoard?.position, nextBoard?.position);
+
+    handleReorderBoard(active.id as string, newPosition);
+  };
+
   return (
     <div className="density-space-y">
       {/* Create folder button */}
@@ -763,23 +758,52 @@ const WorkspaceFolders: React.FC<WorkspaceFoldersProps> = ({
         </button>
       )}
 
-      {/* Folder tree */}
-      {rootFolders.map((folder) => (
-        <FolderNode
-          key={folder.id}
-          folder={folder}
-          boards={boards as any}
-          childFolders={folders.filter((f) => f.parent_id === folder.id)}
-          allFolders={folders}
+      {/* Unified DndContext for drag-to-folder and board reordering */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        {/* Folder tree */}
+        {rootFolders.map((folder) => (
+          <FolderNode
+            key={folder.id}
+            folder={folder}
+            boards={boards as any}
+            childFolders={folders.filter((f) => f.parent_id === folder.id)}
+            allFolders={folders}
+            activeBoardId={activeBoardId}
+            onBoardClick={onBoardClick}
+            onDeleteFolder={(id) => setDeleteFolderId(id)}
+            onRenameFolder={handleRenameFolder}
+            onMoveBoard={handleMoveBoard}
+            onDeleteBoard={(id) => setBoardToDelete(id)}
+            onRenameBoard={handleRenameBoard}
+            onDuplicateBoard={handleDuplicateBoard}
+            allFoldersFlat={foldersFlat}
+            itemCounts={itemCounts}
+            profiles={profiles}
+            favorites={favorites}
+            onToggleFavorite={onToggleFavorite}
+            onUpdateAppearance={handleUpdateAppearance}
+            searchQuery={searchQuery}
+            onReorderBoard={handleReorderBoard}
+            otherWorkspaces={otherWorkspaces}
+            onMoveBoardToWorkspace={onMoveBoardToWorkspace}
+          />
+        ))}
+
+        {/* Separator between folders and root boards */}
+        {rootFolders.length > 0 && rootBoards.length > 0 && (
+          <div className="border-t border-sidebar-border/50 my-1.5" />
+        )}
+
+        {/* Root-level boards (sortable) */}
+        <SortableBoardList
+          boards={rootBoards}
           activeBoardId={activeBoardId}
           onBoardClick={onBoardClick}
-          onDeleteFolder={(id) => setDeleteFolderId(id)}
-          onRenameFolder={handleRenameFolder}
-          onMoveBoard={handleMoveBoard}
           onDeleteBoard={(id) => setBoardToDelete(id)}
           onRenameBoard={handleRenameBoard}
           onDuplicateBoard={handleDuplicateBoard}
-          allFoldersFlat={foldersFlat}
+          onMoveBoard={handleMoveBoard}
+          folders={foldersFlat}
           itemCounts={itemCounts}
           profiles={profiles}
           favorites={favorites}
@@ -790,28 +814,7 @@ const WorkspaceFolders: React.FC<WorkspaceFoldersProps> = ({
           otherWorkspaces={otherWorkspaces}
           onMoveBoardToWorkspace={onMoveBoardToWorkspace}
         />
-      ))}
-
-      {/* Root-level boards (sortable) */}
-      <SortableBoardList
-        boards={rootBoards}
-        activeBoardId={activeBoardId}
-        onBoardClick={onBoardClick}
-        onDeleteBoard={(id) => setBoardToDelete(id)}
-        onRenameBoard={handleRenameBoard}
-        onDuplicateBoard={handleDuplicateBoard}
-        onMoveBoard={handleMoveBoard}
-        folders={foldersFlat}
-        itemCounts={itemCounts}
-        profiles={profiles}
-        favorites={favorites}
-        onToggleFavorite={onToggleFavorite}
-        onUpdateAppearance={handleUpdateAppearance}
-        searchQuery={searchQuery}
-        onReorderBoard={handleReorderBoard}
-        otherWorkspaces={otherWorkspaces}
-        onMoveBoardToWorkspace={onMoveBoardToWorkspace}
-      />
+      </DndContext>
 
       <AlertDialog open={!!boardToDelete} onOpenChange={() => setBoardToDelete(null)}>
         <AlertDialogContent>
