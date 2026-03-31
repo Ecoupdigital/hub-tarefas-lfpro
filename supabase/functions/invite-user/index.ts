@@ -12,7 +12,12 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('authorization')
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+    // Extract the JWT token from the Authorization header
+    const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'Missing authorization header' }),
@@ -20,16 +25,12 @@ serve(async (req) => {
       )
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-
-    // Create a client with the caller's JWT to identify the caller
-    const callerClient = createClient(supabaseUrl, serviceRoleKey, {
+    // Create client with the user's JWT to identify the caller
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     })
 
-    // Get the caller's user from the JWT
-    const { data: { user: caller }, error: authError } = await callerClient.auth.getUser()
+    const { data: { user: caller }, error: authError } = await userClient.auth.getUser()
     if (authError || !caller) {
       return new Response(
         JSON.stringify({ error: 'Invalid or expired token' }),
@@ -37,23 +38,15 @@ serve(async (req) => {
       )
     }
 
-    // Create admin client with service_role key
+    // Create admin client with service_role key for privileged operations
     const adminClient = createClient(supabaseUrl, serviceRoleKey)
 
     // Check if the caller is an admin via user_roles
-    const { data: roleData, error: roleError } = await adminClient
+    const { data: roleData } = await adminClient
       .from('user_roles')
       .select('role')
       .eq('user_id', caller.id)
       .maybeSingle()
-
-    if (roleError) {
-      console.error('Error checking role:', roleError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to verify permissions' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
 
     if (!roleData || roleData.role !== 'admin') {
       return new Response(
@@ -68,6 +61,20 @@ serve(async (req) => {
     if (!email || typeof email !== 'string') {
       return new Response(
         JSON.stringify({ error: 'Email is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Check if user already exists in profiles
+    const { data: existingProfile } = await adminClient
+      .from('profiles')
+      .select('id, email')
+      .eq('email', email.trim().toLowerCase())
+      .maybeSingle()
+
+    if (existingProfile) {
+      return new Response(
+        JSON.stringify({ error: 'Usuário já existe com este email' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
