@@ -433,9 +433,6 @@ const SidebarContent = () => {
             )}
           </PopoverContent>
         </Popover>
-        <button className="flex items-center w-full density-px density-py-item text-sm rounded-md hover:bg-sidebar-accent text-sidebar-foreground transition-colors duration-[70ms]">
-          <MoreHorizontal className="w-4 h-4 mr-2.5" /> <span className="font-density-cell font-medium">Mais</span>
-        </button>
       </div>
 
       <div className="mx-3 my-1.5 border-t border-sidebar-border" />
