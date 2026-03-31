@@ -24,7 +24,16 @@ const BoardCalendar: React.FC = () => {
     return activeBoard.columns.filter(c => c.type === 'date');
   }, [activeBoard]);
 
-  const [selectedDateColId, setSelectedDateColId] = useState<string | null>(null);
+  const storageKey = activeBoard ? `lfpro-cal-datecol-${activeBoard.id}` : '';
+  const [selectedDateColId, setSelectedDateColId] = useState<string | null>(() => {
+    if (!storageKey) return null;
+    return localStorage.getItem(storageKey);
+  });
+
+  const handleDateColChange = (colId: string) => {
+    setSelectedDateColId(colId);
+    if (storageKey) localStorage.setItem(storageKey, colId);
+  };
 
   const dateCol = useMemo(() => {
     if (dateColumns.length === 0) return null;
@@ -153,7 +162,7 @@ const BoardCalendar: React.FC = () => {
               <CalendarDays className="w-3.5 h-3.5 text-muted-foreground" />
               <select
                 value={dateCol.id}
-                onChange={e => setSelectedDateColId(e.target.value)}
+                onChange={e => handleDateColChange(e.target.value)}
                 className="bg-transparent font-density-cell font-medium text-foreground outline-none cursor-pointer border-none pr-1"
               >
                 {dateColumns.map(col => (
