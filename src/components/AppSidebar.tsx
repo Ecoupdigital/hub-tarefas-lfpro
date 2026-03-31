@@ -656,7 +656,7 @@ const AppSidebar = () => {
           >
             <PanelLeft className="w-4 h-4" />
           </button>
-          <div className="space-y-2">
+          <div className="flex flex-col items-center gap-2">
             <button className="p-2 rounded-md hover:bg-sidebar-accent text-muted-foreground" aria-label="Inicio" title="Inicio"><Home className="w-4 h-4" /></button>
             <button className="p-2 rounded-md hover:bg-sidebar-accent text-muted-foreground" aria-label="Buscar" title="Buscar"><Search className="w-4 h-4" /></button>
             <button className="p-2 rounded-md hover:bg-sidebar-accent text-muted-foreground" aria-label="Favoritos" title="Favoritos"><Star className="w-4 h-4" /></button>
