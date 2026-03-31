@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Search, GripVertical } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useFilter } from '@/context/FilterContext';
 import { useSelection } from '@/context/SelectionContext';
 import { Group, Item } from '@/types/board';
-import { useReorderItem, useReorderGroup, useReorderColumn, useBatchReorderItems, useMoveItemToGroup } from '@/hooks/useCrudMutations';
+import { useReorderItem, useReorderGroup, useBatchReorderItems, useMoveItemToGroup } from '@/hooks/useCrudMutations';
 import { useAllSubitems } from '@/hooks/useSupabaseData';
 import FilePreview from '@/components/shared/FilePreview';
 import { type ItemFile } from '@/hooks/useFileUpload';
@@ -43,7 +43,6 @@ const BoardTable: React.FC = () => {
   const batchReorderItems = useBatchReorderItems();
   const moveItemToGroup = useMoveItemToGroup();
   const reorderGroup = useReorderGroup();
-  const reorderColumn = useReorderColumn();
   // Fetch board dependencies for blocking badge
   const { data: boardDeps = [] } = useBoardDependencies(activeBoardId);
 
@@ -202,32 +201,8 @@ const BoardTable: React.FC = () => {
       return;
     }
 
-    // Handle column reorder (ids prefixed with 'col-')
-    if (activeId.startsWith('col-') && overId.startsWith('col-')) {
-      const columns = activeBoard.columns;
-      const activeColId = activeId.replace('col-', '');
-      const overColId = overId.replace('col-', '');
-      const oldIndex = columns.findIndex(c => c.id === activeColId);
-      const newIndex = columns.findIndex(c => c.id === overColId);
-      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
-
-      const reordered = arrayMove(columns, oldIndex, newIndex);
-      const movedCol = reordered[newIndex];
-      const prevCol = reordered[newIndex - 1];
-      const nextCol = reordered[newIndex + 1];
-      let newPosition: number;
-      if (!prevCol && !nextCol) {
-        newPosition = Date.now();
-      } else if (!prevCol) {
-        newPosition = nextCol.position - 1;
-      } else if (!nextCol) {
-        newPosition = prevCol.position + 1;
-      } else {
-        newPosition = (prevCol.position + nextCol.position) / 2;
-      }
-      reorderColumn.mutate({ columnId: movedCol.id, position: newPosition });
-      return;
-    }
+    // Column reorder is handled by isolated DndContext in SortableColumnHeaders
+    if (activeId.startsWith('col-')) return;
 
     const activeResult = findGroupForItem(activeId);
     if (!activeResult) return;
@@ -376,18 +351,8 @@ const BoardTable: React.FC = () => {
   const renderDragOverlay = (activeId: string | null) => {
     if (!activeId) return null;
 
-    // Column drag overlay
-    if (activeId.startsWith('col-')) {
-      const colId = activeId.replace('col-', '');
-      const col = activeBoard.columns.find(c => c.id === colId);
-      if (!col) return null;
-      return (
-        <div className="flex items-center gap-1.5 px-3 py-1.5 border border-primary/30 bg-card shadow-lg rounded opacity-90">
-          <GripVertical className="w-3.5 h-3.5 text-primary rotate-90" />
-          <span className="font-density-header font-semibold text-muted-foreground uppercase tracking-wider">{col.title}</span>
-        </div>
-      );
-    }
+    // Column drag overlay is handled by SortableColumnHeaders' own DndContext
+    if (activeId.startsWith('col-')) return null;
 
     const item = allItemsMap.get(activeId);
     if (!item) return null;

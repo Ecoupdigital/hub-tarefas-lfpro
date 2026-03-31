@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ChevronDown, ChevronRight, Plus, GripVertical, MoreHorizontal, Trash2, Pencil, Palette } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useSelection } from '@/context/SelectionContext';
 import { Group, Column } from '@/types/board';
-import { useDeleteGroup, useUpdateGroup } from '@/hooks/useCrudMutations';
+import { useDeleteGroup, useUpdateGroup, useReorderColumn } from '@/hooks/useCrudMutations';
 import GroupFooter from '../GroupFooter';
 import QuickColumnFilter from '../QuickColumnFilter';
 import CreateColumnModal from '@/components/modals/CreateColumnModal';
 import EditColumnModal from '@/components/modals/EditColumnModal';
 import SortableItem from '@/components/dnd/SortableItem';
-import { SortableContext, verticalListSortingStrategy, horizontalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, verticalListSortingStrategy, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { DndContext, DragOverlay, DragEndEvent, PointerSensor, useSensors, useSensor, closestCenter, MeasuringStrategy } from '@dnd-kit/core';
 import { useDroppable } from '@dnd-kit/core';
 import { type ColorRule } from '../ConditionalColorRules';
 import { type ItemFile } from '@/hooks/useFileUpload';
@@ -36,6 +37,108 @@ export const DroppableGroup: React.FC<{ groupId: string; children: React.ReactNo
 };
 
 export const GROUP_COLORS = ['#579BFC', '#00C875', '#FDAB3D', '#E2445C', '#A25DDC', '#037F4C', '#FF158A', '#CAB641', '#9AADBD', '#5F3FFF'];
+
+/** Isolated DndContext for column reordering — avoids nesting inside group SortableContext */
+const SortableColumnHeaders: React.FC<{
+  columns: Column[];
+  boardId: string;
+  getColumnWidth: (col: Column) => number;
+  startResize: (colId: string, width: number, x: number) => void;
+  setEditColumn: (col: { id: string; title: string; type: string; settings: any; boardId?: string }) => void;
+  setShowCreateColumn: (v: boolean) => void;
+}> = ({ columns, boardId, getColumnWidth, startResize, setEditColumn, setShowCreateColumn }) => {
+  const reorderColumn = useReorderColumn();
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const columnSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  const handleColumnDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveDragId(null);
+    const { active, over } = event;
+    if (!over) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    if (activeId === overId) return;
+
+    const activeColId = activeId.replace('col-', '');
+    const overColId = overId.replace('col-', '');
+    const oldIndex = columns.findIndex(c => c.id === activeColId);
+    const newIndex = columns.findIndex(c => c.id === overColId);
+    if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+
+    const reordered = arrayMove(columns, oldIndex, newIndex);
+    const movedCol = reordered[newIndex];
+    const prevCol = reordered[newIndex - 1];
+    const nextCol = reordered[newIndex + 1];
+    let newPosition: number;
+    if (!prevCol && !nextCol) { newPosition = Date.now(); }
+    else if (!prevCol) { newPosition = nextCol.position - 1; }
+    else if (!nextCol) { newPosition = prevCol.position + 1; }
+    else { newPosition = (prevCol.position + nextCol.position) / 2; }
+    reorderColumn.mutate({ columnId: movedCol.id, position: newPosition });
+  }, [columns, reorderColumn]);
+
+  const activeCol = activeDragId ? columns.find(c => c.id === activeDragId.replace('col-', '')) : null;
+
+  return (
+    <DndContext
+      sensors={columnSensors}
+      collisionDetection={closestCenter}
+      onDragStart={(e) => setActiveDragId(String(e.active.id))}
+      onDragEnd={handleColumnDragEnd}
+      onDragCancel={() => setActiveDragId(null)}
+      measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+    >
+      <SortableContext items={columns.map(c => `col-${c.id}`)} strategy={horizontalListSortingStrategy}>
+        {columns.map(col => (
+          <SortableItem key={col.id} id={`col-${col.id}`}>
+            {({ attributes, listeners, setNodeRef, isDragging, style }) => (
+              <div
+                ref={setNodeRef}
+                role="columnheader"
+                className={`relative flex items-center justify-center py-1.5 border-r border-cell-border bg-board-header hover:bg-muted/50 transition-colors group/colheader cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50 ring-1 ring-primary/30' : ''}`}
+                style={{ ...style, minWidth: getColumnWidth(col), width: getColumnWidth(col) }}
+                {...attributes}
+                {...listeners}
+              >
+                <div className="flex items-center opacity-0 group-hover/colheader:opacity-60 mr-0.5 flex-shrink-0">
+                  <GripVertical className="w-3.5 h-3.5 text-muted-foreground rotate-90" />
+                </div>
+                <span
+                  className="font-density-header font-semibold text-muted-foreground truncate px-1 uppercase tracking-wider cursor-pointer"
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={() => setEditColumn({ id: col.id, title: col.title, type: col.type, settings: col.settings, boardId })}
+                >{col.title}</span>
+                <span className="opacity-0 group-hover/colheader:opacity-100 transition-opacity" onPointerDown={e => e.stopPropagation()}>
+                  <QuickColumnFilter column={col} />
+                </span>
+                {/* Resize handle */}
+                <div
+                  className="absolute right-0 top-0 h-full w-2 cursor-col-resize z-10 opacity-0 group-hover/colheader:opacity-100 hover:opacity-100 flex items-center justify-center transition-opacity"
+                  onPointerDown={e => e.stopPropagation()}
+                  onMouseDown={e => { e.stopPropagation(); e.preventDefault(); startResize(col.id, getColumnWidth(col), e.clientX); }}
+                  onClick={e => e.stopPropagation()}
+                  title="Redimensionar coluna"
+                >
+                  <div className="w-0.5 h-4 bg-primary/60 rounded-full" />
+                </div>
+              </div>
+            )}
+          </SortableItem>
+        ))}
+      </SortableContext>
+      <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
+        {activeCol ? (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 border border-primary/30 bg-card shadow-lg rounded opacity-90">
+            <GripVertical className="w-3.5 h-3.5 text-primary rotate-90" />
+            <span className="font-density-header font-semibold text-muted-foreground uppercase tracking-wider">{activeCol.title}</span>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+};
 
 export const GroupSection: React.FC<{ group: Group; columns: Column[]; boardId: string; allSubitems: any[]; allGroups: Group[]; allItemIds: string[]; colorRules?: ColorRule[]; onFilePreview?: (file: ItemFile) => void; blockedItemMap?: Map<string, string[]> }> = ({ group, columns, boardId, allSubitems, allGroups, allItemIds, colorRules, onFilePreview, blockedItemMap }) => {
   const { toggleGroupCollapse, addItemToGroup } = useApp();
@@ -181,50 +284,14 @@ export const GroupSection: React.FC<{ group: Group; columns: Column[]; boardId: 
                 />
                 <span className="font-density-header font-medium text-muted-foreground">Item</span>
               </div>
-              <SortableContext items={columns.map(c => `col-${c.id}`)} strategy={horizontalListSortingStrategy}>
-                {columns.map(col => (
-                  <SortableItem key={col.id} id={`col-${col.id}`}>
-                    {({ attributes, listeners, setNodeRef, isDragging, style }) => (
-                      <div
-                        ref={setNodeRef}
-                        role="columnheader"
-                        className={`relative flex items-center justify-center py-1.5 border-r border-cell-border bg-board-header hover:bg-muted/50 transition-colors group/colheader cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50 ring-1 ring-primary/30' : ''}`}
-                        style={{ ...style, minWidth: getColumnWidth(col), width: getColumnWidth(col) }}
-                        {...attributes}
-                        {...listeners}
-                      >
-                        <div
-                          className="flex items-center opacity-0 group-hover/colheader:opacity-60 mr-0.5 flex-shrink-0"
-                        >
-                          <GripVertical className="w-3.5 h-3.5 text-muted-foreground rotate-90" />
-                        </div>
-                        <span
-                          className="font-density-header font-semibold text-muted-foreground truncate px-1 uppercase tracking-wider cursor-pointer"
-                          onPointerDown={e => e.stopPropagation()}
-                          onClick={() => setEditColumn({ id: col.id, title: col.title, type: col.type, settings: col.settings, boardId })}
-                        >{col.title}</span>
-                        <span className="opacity-0 group-hover/colheader:opacity-100 transition-opacity" onPointerDown={e => e.stopPropagation()}>
-                          <QuickColumnFilter column={col} />
-                        </span>
-                        {/* Resize handle */}
-                        <div
-                          className="absolute right-0 top-0 h-full w-2 cursor-col-resize z-10 opacity-0 group-hover/colheader:opacity-100 hover:opacity-100 flex items-center justify-center transition-opacity"
-                          onPointerDown={e => e.stopPropagation()}
-                          onMouseDown={e => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            startResize(col.id, getColumnWidth(col), e.clientX);
-                          }}
-                          onClick={e => e.stopPropagation()}
-                          title="Redimensionar coluna"
-                        >
-                          <div className="w-0.5 h-4 bg-primary/60 rounded-full" />
-                        </div>
-                      </div>
-                    )}
-                  </SortableItem>
-                ))}
-              </SortableContext>
+              <SortableColumnHeaders
+                columns={columns}
+                boardId={boardId}
+                getColumnWidth={getColumnWidth}
+                startResize={startResize}
+                setEditColumn={setEditColumn}
+                setShowCreateColumn={setShowCreateColumn}
+              />
               <div className="min-w-[40px] bg-board-header flex items-center justify-center">
                 <button onClick={() => setShowCreateColumn(true)} aria-label="Adicionar coluna">
                   <Plus className="w-3.5 h-3.5 text-muted-foreground/40 hover:text-foreground cursor-pointer transition-colors" />
