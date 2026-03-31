@@ -44,11 +44,11 @@ export const applyDensity = (density: Density) => {
   document.documentElement.classList.add(`density-${density}`);
 };
 
+const DEFAULT_THEME_COLOR = '29 45% 71%'; // LFPro gold
+
 export const initThemeCustomization = () => {
   const savedColor = localStorage.getItem(THEME_COLOR_KEY);
-  if (savedColor) {
-    applyThemeColor(savedColor);
-  }
+  applyThemeColor(savedColor || DEFAULT_THEME_COLOR);
   const savedDensity = (localStorage.getItem(THEME_DENSITY_KEY) as Density | null) || 'normal';
   applyDensity(savedDensity);
 
