@@ -20,7 +20,8 @@ import {
   useDeleteFolder,
   useMoveBoard,
 } from '@/hooks/useWorkspaceFolders';
-import { useDeleteBoard, useRenameBoard, useDuplicateBoard, useReorderBoard, useMoveBoardToWorkspace } from '@/hooks/useCrudMutations';
+import { useDeleteBoard, useRenameBoard, useReorderBoard, useMoveBoardToWorkspace } from '@/hooks/useCrudMutations';
+import DuplicateBoardDialog from '@/components/board/DuplicateBoardDialog';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger, DropdownMenuSeparator,
@@ -606,10 +607,10 @@ const WorkspaceFolders: React.FC<WorkspaceFoldersProps> = ({
   const moveBoard = useMoveBoard();
   const deleteBoardMut = useDeleteBoard();
   const renameBoardMut = useRenameBoard();
-  const duplicateBoardMut = useDuplicateBoard();
   const reorderBoardMut = useReorderBoard();
 
   const [showCreate, setShowCreate] = useState(false);
+  const [dupBoardInfo, setDupBoardInfo] = useState<{id: string; name: string; workspaceId: string} | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
   const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
   const [boardToDelete, setBoardToDelete] = useState<string | null>(null);
@@ -687,13 +688,9 @@ const WorkspaceFolders: React.FC<WorkspaceFoldersProps> = ({
     }
   };
 
-  const handleDuplicateBoard = async (boardId: string) => {
-    try {
-      await duplicateBoardMut.mutateAsync(boardId);
-      toast.success('Board duplicado');
-    } catch {
-      toast.error('Erro ao duplicar board');
-    }
+  const handleDuplicateBoard = (boardId: string) => {
+    const board = boards.find((b: any) => b.id === boardId);
+    setDupBoardInfo({ id: boardId, name: board?.name || 'Board', workspaceId });
   };
 
   const handleUpdateAppearance = (boardId: string, icon: string | null, color: string | null) => {
@@ -894,6 +891,16 @@ const WorkspaceFolders: React.FC<WorkspaceFoldersProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {dupBoardInfo && (
+        <DuplicateBoardDialog
+          open={!!dupBoardInfo}
+          onOpenChange={(open) => !open && setDupBoardInfo(null)}
+          boardId={dupBoardInfo.id}
+          boardName={dupBoardInfo.name}
+          workspaceId={dupBoardInfo.workspaceId}
+        />
+      )}
     </div>
   );
 };

@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useApp } from '@/context/AppContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useDuplicateBoard } from '@/hooks/useCrudMutations';
+import DuplicateBoardDialog from '@/components/board/DuplicateBoardDialog';
 
 // ---- Section wrapper ----
 interface SectionProps {
@@ -49,11 +49,10 @@ const BoardSettings = () => {
   const { activeBoard, setActiveBoardId } = useApp();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const duplicateBoard = useDuplicateBoard();
-
   const [name, setName] = useState(activeBoard?.name ?? '');
   const [description, setDescription] = useState(activeBoard?.description ?? '');
   const [savingInfo, setSavingInfo] = useState(false);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
 
   // Keep local fields in sync when activeBoard changes
   useEffect(() => {
@@ -136,14 +135,8 @@ const BoardSettings = () => {
   };
 
   // ---- Duplicate board ----
-  const handleDuplicate = async () => {
-    try {
-      await duplicateBoard.mutateAsync(activeBoard.id);
-      toast.success(`Board "${activeBoard.name}" duplicado com sucesso.`);
-    } catch (err) {
-      console.error('Erro ao duplicar board:', err);
-      toast.error('Não foi possível duplicar o board.');
-    }
+  const handleDuplicate = () => {
+    setShowDuplicateDialog(true);
   };
 
   // ---- Archive board ----
@@ -261,18 +254,25 @@ const BoardSettings = () => {
       {/* ---- Duplicar ---- */}
       <Section
         title="Duplicar board"
-        description="Cria uma cópia completa deste board com grupos e colunas."
+        description="Cria uma copia deste board. Escolha o que incluir na duplicacao."
       >
         <Button
           variant="outline"
           onClick={handleDuplicate}
-          disabled={duplicateBoard.isPending}
           className="flex items-center gap-2"
         >
           <Copy className="w-4 h-4" />
-          {duplicateBoard.isPending ? 'Duplicando...' : 'Duplicar board'}
+          Duplicar board
         </Button>
       </Section>
+
+      <DuplicateBoardDialog
+        open={showDuplicateDialog}
+        onOpenChange={setShowDuplicateDialog}
+        boardId={activeBoard.id}
+        boardName={activeBoard.name}
+        workspaceId={activeBoard.workspace_id}
+      />
 
       <Separator />
 

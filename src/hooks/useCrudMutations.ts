@@ -862,3 +862,28 @@ export const useDuplicateBoard = () => {
     },
   });
 };
+
+// ---- Duplicate Board with Options (RPC) ----
+export const useDuplicateBoardWithOptions = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ boardId, mode, name }: { boardId: string; mode: string; name?: string }) => {
+      const { data, error } = await supabase.rpc('duplicate_board_with_options', {
+        p_board_id: boardId,
+        p_mode: mode,
+        p_name: name || null,
+      });
+      if (error) throw error;
+      return data as string; // new board UUID
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['boards'] });
+      qc.invalidateQueries({ queryKey: ['all-boards'] });
+      qc.invalidateQueries({ queryKey: ['columns'] });
+      qc.invalidateQueries({ queryKey: ['groups'] });
+    },
+    onError: (error: Error) => {
+      console.error('useDuplicateBoardWithOptions', error);
+    },
+  });
+};

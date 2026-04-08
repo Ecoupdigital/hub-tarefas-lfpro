@@ -20,10 +20,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfiles } from '@/hooks/useSupabaseData';
 import { prefetchMyWorkItems } from '@/hooks/useMyWorkItems';
 import {
-  useDeleteBoard, useToggleFavorite, useRenameBoard, useDuplicateBoard,
+  useDeleteBoard, useToggleFavorite, useRenameBoard,
   useRenameWorkspace, useDeleteWorkspace, useUpdateWorkspaceAppearance,
   useUpdateBoardAppearance, useFavorites, useMoveBoardToWorkspace,
 } from '@/hooks/useCrudMutations';
+import DuplicateBoardDialog from '@/components/board/DuplicateBoardDialog';
 import { useRecentBoards } from '@/hooks/useRecentBoards';
 import { useBoardItemCounts } from '@/hooks/useBoardItemCounts';
 import { EmojiColorPicker } from '@/components/shared/EmojiColorPicker';
@@ -106,9 +107,9 @@ const WorkspaceItem = React.memo(({ workspace, sidebarSearch, activeBoardId, ite
   const [wsRenameValue, setWsRenameValue] = useState('');
   const [showDeleteWs, setShowDeleteWs] = useState(false);
   const [showWsSettings, setShowWsSettings] = useState(false);
+  const [dupBoardInfo, setDupBoardInfo] = useState<{id: string; name: string; workspaceId: string} | null>(null);
   const deleteBoard = useDeleteBoard();
   const renameBoard = useRenameBoard();
-  const duplicateBoard = useDuplicateBoard();
   const renameWorkspace = useRenameWorkspace();
   const deleteWorkspace = useDeleteWorkspace();
   const updateWsAppearance = useUpdateWorkspaceAppearance();
@@ -133,8 +134,9 @@ const WorkspaceItem = React.memo(({ workspace, sidebarSearch, activeBoardId, ite
     setRenamingBoardId(null);
   };
 
-  const handleDuplicate = async (boardId: string) => {
-    try { await duplicateBoard.mutateAsync(boardId); toast.success('Board duplicado'); } catch { toast.error('Erro ao duplicar'); }
+  const handleDuplicate = (boardId: string) => {
+    const board = workspace.boards?.find((b: any) => b.id === boardId);
+    setDupBoardInfo({ id: boardId, name: board?.name || 'Board', workspaceId: workspace.id });
   };
 
   const handleRenameWs = async () => {
@@ -252,6 +254,15 @@ const WorkspaceItem = React.memo(({ workspace, sidebarSearch, activeBoardId, ite
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {dupBoardInfo && (
+        <DuplicateBoardDialog
+          open={!!dupBoardInfo}
+          onOpenChange={(open) => !open && setDupBoardInfo(null)}
+          boardId={dupBoardInfo.id}
+          boardName={dupBoardInfo.name}
+          workspaceId={dupBoardInfo.workspaceId}
+        />
+      )}
     </div>
   );
 });
