@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { StatusLabel } from '@/types/board';
 import { Settings2, X, Search } from 'lucide-react';
 
@@ -14,6 +14,8 @@ const StatusCell: React.FC<StatusCellProps> = ({ value, labels, onChange, onEdit
   const [search, setSearch] = useState('');
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 180 });
   const current = value !== undefined ? labels[value] : undefined;
   const entries = Object.entries(labels);
   const showSearch = entries.length > 5;
@@ -31,6 +33,14 @@ const StatusCell: React.FC<StatusCellProps> = ({ value, labels, onChange, onEdit
   }, [filtered]);
 
   const handleOpen = useCallback(() => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 4,
+        left: rect.left + rect.width / 2,
+        width: Math.max(180, rect.width),
+      });
+    }
     setOpen(true);
     setSearch('');
     setHighlightIndex(-1);
@@ -84,6 +94,7 @@ const StatusCell: React.FC<StatusCellProps> = ({ value, labels, onChange, onEdit
   return (
     <div className="relative w-full h-full">
       <button
+        ref={triggerRef}
         onClick={() => { open ? handleClose() : handleOpen(); }}
         onKeyDown={handleKeyDown}
         tabIndex={0}
@@ -102,7 +113,13 @@ const StatusCell: React.FC<StatusCellProps> = ({ value, labels, onChange, onEdit
         <>
           <div className="fixed inset-0 z-40" onClick={handleClose} />
           <div
-            className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-popover border border-border rounded-lg shadow-xl p-1.5 min-w-[180px] animate-fade-in"
+            className="fixed z-[9999] bg-popover border border-border rounded-lg shadow-xl p-1.5 animate-fade-in"
+            style={{
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              transform: 'translateX(-50%)',
+              minWidth: dropdownPos.width,
+            }}
             role="listbox"
             onKeyDown={handleKeyDown}
           >
