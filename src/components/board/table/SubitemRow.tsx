@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 import { GripVertical } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -22,6 +22,7 @@ export const SubitemRow: React.FC<SubitemRowProps> = ({ subitem, columns, getCol
   const { isSelected, toggleItem, selectRange, lastSelectedId, setLastSelectedId } = useSelection();
   const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState(subitem.name);
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subitem.id });
   const style = {
@@ -76,7 +77,15 @@ export const SubitemRow: React.FC<SubitemRowProps> = ({ subitem, columns, getCol
             onKeyDown={(e) => { if (e.key === 'Enter') { updateItemName(subitem.id, tempName); setEditingName(false); } if (e.key === 'Escape') { setTempName(subitem.name); setEditingName(false); } }}
             className="flex-1 bg-transparent font-density-cell text-foreground outline-none border-b border-primary" />
         ) : (
-          <button onClick={handleOpen} onDoubleClick={() => setEditingName(true)}
+          <button
+            onClick={() => {
+              if (clickTimerRef.current) return;
+              clickTimerRef.current = setTimeout(() => { clickTimerRef.current = null; handleOpen(); }, 250);
+            }}
+            onDoubleClick={() => {
+              if (clickTimerRef.current) { clearTimeout(clickTimerRef.current); clickTimerRef.current = null; }
+              setTempName(subitem.name); setEditingName(true);
+            }}
             className="flex-1 text-left font-density-cell text-muted-foreground hover:text-foreground truncate transition-colors">
             &#8627; {subitem.name}
           </button>

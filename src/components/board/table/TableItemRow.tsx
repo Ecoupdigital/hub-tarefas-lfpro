@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 import { ChevronDown, ChevronRight, Plus, GripVertical, MoreHorizontal, Trash2, Copy, ArrowRight, Star, Bell, Lock } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -102,6 +102,7 @@ export const SortableItemRow: React.FC<SortableItemRowProps> = React.memo(({ ite
   const { isSelected, toggleItem, selectRange, lastSelectedId, setLastSelectedId, selectedItems, hasMultiSelection } = useSelection();
   const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState(item.name);
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [addingSubitem, setAddingSubitem] = useState(false);
@@ -226,7 +227,15 @@ export const SortableItemRow: React.FC<SortableItemRowProps> = React.memo(({ ite
                   onKeyDown={(e) => { if (e.key === 'Enter') { updateItemName(item.id, tempName); setEditingName(false); } if (e.key === 'Escape') { setTempName(item.name); setEditingName(false); } }}
                   className="flex-1 bg-transparent font-density-item text-foreground outline-none border-b-2 border-primary" />
               ) : (
-                <button onClick={() => setSelectedItem(item)} onDoubleClick={() => setEditingName(true)}
+                <button
+                  onClick={() => {
+                    if (clickTimerRef.current) return;
+                    clickTimerRef.current = setTimeout(() => { clickTimerRef.current = null; setSelectedItem(item); }, 250);
+                  }}
+                  onDoubleClick={() => {
+                    if (clickTimerRef.current) { clearTimeout(clickTimerRef.current); clickTimerRef.current = null; }
+                    setTempName(item.name); setEditingName(true);
+                  }}
                   className="flex-1 text-left font-density-item text-foreground hover:text-primary truncate transition-colors flex items-center gap-1.5 min-w-0">
                   <span className="truncate">{item.name}</span>
                   {isBlocked && (

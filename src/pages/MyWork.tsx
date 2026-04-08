@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMyWorkItems, type MyWorkItem } from '@/hooks/useMyWorkItems';
 import { useItemFull, useUpdateColumnValue, useUpdateItem } from '@/hooks/useSupabaseData';
@@ -276,6 +276,7 @@ const MyWork: React.FC = () => {
   const [selectedExtraCols, setSelectedExtraCols] = useState<string[]>(() => loadSelectedColumns('mywork'));
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [tempName, setTempName] = useState('');
+  const nameClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Inline column value update (works cross-board via direct Supabase mutation)
   const handleColumnChange = useCallback((itemId: string, columnId: string, newValue: unknown) => {
@@ -537,7 +538,7 @@ const MyWork: React.FC = () => {
               {section.items.map(item => (
                 <div
                   key={item.id}
-                  onClick={() => { if (editingNameId !== item.id) handleItemClick(item); }}
+                  onClick={() => {}}
                   className="grid gap-0 border-b border-border last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors"
                   style={{
                     height: 'var(--density-row-h, 36px)',
@@ -562,7 +563,16 @@ const MyWork: React.FC = () => {
                       />
                     ) : (
                       <span
-                        onDoubleClick={e => { e.stopPropagation(); startEditingName(item); }}
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (nameClickTimerRef.current) return;
+                          nameClickTimerRef.current = setTimeout(() => { nameClickTimerRef.current = null; handleItemClick(item); }, 250);
+                        }}
+                        onDoubleClick={e => {
+                          e.stopPropagation();
+                          if (nameClickTimerRef.current) { clearTimeout(nameClickTimerRef.current); nameClickTimerRef.current = null; }
+                          startEditingName(item);
+                        }}
                         className="truncate cursor-text select-none"
                         title="Duplo clique para editar"
                       >
