@@ -31,20 +31,19 @@ const BoardChangeHandler: React.FC = () => {
 // Aplica a default view quando o board ativo muda
 const DefaultViewApplier: React.FC = () => {
   const { activeBoardId, setActiveView, setSort, setHiddenColumns, setAdvancedFilter } = useApp();
-  const { data: savedViews = [] } = useBoardViews(activeBoardId);
-  const lastAppliedBoardRef = useRef<string | null>(null);
+  const { data: savedViews = [], isLoading } = useBoardViews(activeBoardId);
+  const appliedRef = useRef<{ boardId: string; viewId: string } | null>(null);
 
   useEffect(() => {
-    if (!activeBoardId || activeBoardId === lastAppliedBoardRef.current) return;
-    if (savedViews.length === 0) return;
+    if (!activeBoardId || isLoading) return;
 
     const defaultView = savedViews.find((v: any) => v.is_default);
-    if (!defaultView) {
-      lastAppliedBoardRef.current = activeBoardId;
-      return;
-    }
+    if (!defaultView) return;
 
-    lastAppliedBoardRef.current = activeBoardId;
+    // Skip if we already applied this exact default view for this board
+    if (appliedRef.current?.boardId === activeBoardId && appliedRef.current?.viewId === defaultView.id) return;
+
+    appliedRef.current = { boardId: activeBoardId, viewId: defaultView.id };
     const config = defaultView.config as any;
     if (config.activeView) setActiveView(config.activeView);
     if (config.sort !== undefined) setSort(config.sort);
@@ -61,7 +60,7 @@ const DefaultViewApplier: React.FC = () => {
         })),
       });
     }
-  }, [activeBoardId, savedViews]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeBoardId, savedViews, isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return null;
 };
