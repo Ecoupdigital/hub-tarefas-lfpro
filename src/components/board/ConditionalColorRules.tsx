@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Plus, Trash2, GripVertical, Palette } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -186,6 +186,10 @@ interface RuleRowProps {
 const RuleRow: React.FC<RuleRowProps> = ({ rule, index, columns, onUpdate, onUpdateStyle, onRemove }) => {
   const [showBgPicker, setShowBgPicker] = useState(false);
   const [showTextPicker, setShowTextPicker] = useState(false);
+  const bgTriggerRef = useRef<HTMLButtonElement>(null);
+  const textTriggerRef = useRef<HTMLButtonElement>(null);
+  const [bgPickerPos, setBgPickerPos] = useState({ top: 0, left: 0 });
+  const [textPickerPos, setTextPickerPos] = useState({ top: 0, left: 0 });
 
   const needsValue = rule.operator !== 'está vazio';
 
@@ -238,14 +242,25 @@ const RuleRow: React.FC<RuleRowProps> = ({ rule, index, columns, onUpdate, onUpd
         {/* Background color */}
         <div className="relative">
           <button
-            onClick={() => { setShowBgPicker(!showBgPicker); setShowTextPicker(false); }}
+            ref={bgTriggerRef}
+            onClick={() => {
+              if (!showBgPicker && bgTriggerRef.current) {
+                const rect = bgTriggerRef.current.getBoundingClientRect();
+                setBgPickerPos({ top: rect.bottom + 4, left: rect.left });
+              }
+              setShowBgPicker(!showBgPicker);
+              setShowTextPicker(false);
+            }}
             className="flex items-center gap-1.5 h-7 px-2 rounded border border-border font-density-cell hover:bg-muted transition-colors"
           >
             <div className="w-3.5 h-3.5 rounded-sm border border-border" style={{ backgroundColor: rule.style.backgroundColor }} />
             <span className="text-muted-foreground">Fundo</span>
           </button>
           {showBgPicker && (
-            <div className="absolute top-full mt-1 left-0 bg-popover border border-border rounded-md shadow-lg p-2 z-50 w-40">
+            <div
+              className="fixed z-[9999] bg-popover border border-border rounded-md shadow-lg p-2 w-40"
+              style={{ top: bgPickerPos.top, left: bgPickerPos.left }}
+            >
               <div className="grid grid-cols-4 gap-1 mb-2">
                 {DEFAULT_COLORS.map(color => (
                   <button
@@ -269,14 +284,25 @@ const RuleRow: React.FC<RuleRowProps> = ({ rule, index, columns, onUpdate, onUpd
         {/* Text color */}
         <div className="relative">
           <button
-            onClick={() => { setShowTextPicker(!showTextPicker); setShowBgPicker(false); }}
+            ref={textTriggerRef}
+            onClick={() => {
+              if (!showTextPicker && textTriggerRef.current) {
+                const rect = textTriggerRef.current.getBoundingClientRect();
+                setTextPickerPos({ top: rect.bottom + 4, left: rect.left });
+              }
+              setShowTextPicker(!showTextPicker);
+              setShowBgPicker(false);
+            }}
             className="flex items-center gap-1.5 h-7 px-2 rounded border border-border font-density-cell hover:bg-muted transition-colors"
           >
             <div className="w-3.5 h-3.5 rounded-sm border border-border" style={{ backgroundColor: rule.style.textColor }} />
             <span className="text-muted-foreground">Texto</span>
           </button>
           {showTextPicker && (
-            <div className="absolute top-full mt-1 left-0 bg-popover border border-border rounded-md shadow-lg p-2 z-50 w-40">
+            <div
+              className="fixed z-[9999] bg-popover border border-border rounded-md shadow-lg p-2 w-40"
+              style={{ top: textPickerPos.top, left: textPickerPos.left }}
+            >
               <div className="grid grid-cols-4 gap-1 mb-2">
                 {['#FFFFFF', '#000000', '#333333', '#666666', ...DEFAULT_COLORS.slice(0, 12)].map(color => (
                   <button

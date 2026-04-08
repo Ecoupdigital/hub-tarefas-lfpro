@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link2, X, Search, ExternalLink } from 'lucide-react';
 import {
   useItemConnections,
@@ -27,6 +27,8 @@ const ConnectBoardsCell: React.FC<ConnectBoardsCellProps> = ({
   const { setActiveBoardId } = useApp();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 260 });
 
   const targetBoardId = settings?.target_board_id;
 
@@ -59,7 +61,22 @@ const ConnectBoardsCell: React.FC<ConnectBoardsCellProps> = ({
   return (
     <div className="relative w-full h-full">
       <button
-        onClick={() => setOpen(!open)}
+        ref={triggerRef}
+        onClick={() => {
+          if (open) {
+            setOpen(false);
+          } else {
+            if (triggerRef.current) {
+              const rect = triggerRef.current.getBoundingClientRect();
+              setDropdownPos({
+                top: rect.bottom + 4,
+                left: rect.left + rect.width / 2,
+                width: Math.max(260, rect.width),
+              });
+            }
+            setOpen(true);
+          }
+        }}
         className="w-full h-full flex items-center justify-center gap-0.5 px-1 overflow-hidden"
       >
         {connectedItems.length > 0 ? (
@@ -88,7 +105,15 @@ const ConnectBoardsCell: React.FC<ConnectBoardsCellProps> = ({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-popover border border-border rounded-lg shadow-xl p-2 min-w-[260px] max-w-[320px] animate-fade-in">
+          <div
+            className="fixed z-[9999] bg-popover border border-border rounded-lg shadow-xl p-2 max-w-[320px] animate-fade-in"
+            style={{
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              transform: 'translateX(-50%)',
+              minWidth: dropdownPos.width,
+            }}
+          >
             {/* Connected items */}
             {connectedItems.length > 0 && (
               <div className="mb-2">

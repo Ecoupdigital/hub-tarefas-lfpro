@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from 'lucide-react';
@@ -13,6 +13,8 @@ const TimelineCell: React.FC<TimelineCellProps> = ({ value, onChange, color = 'h
   const [editing, setEditing] = useState(false);
   const [startDate, setStartDate] = useState(value?.start || '');
   const [endDate, setEndDate] = useState(value?.end || '');
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 240 });
 
   const parsedStart = value?.start ? parseISO(value.start) : null;
   const parsedEnd = value?.end ? parseISO(value.end) : null;
@@ -32,9 +34,18 @@ const TimelineCell: React.FC<TimelineCellProps> = ({ value, onChange, color = 'h
   return (
     <div className="relative w-full h-full">
       <button
+        ref={triggerRef}
         onClick={() => {
           setStartDate(value?.start || '');
           setEndDate(value?.end || '');
+          if (triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setDropdownPos({
+              top: rect.bottom + 4,
+              left: rect.left + rect.width / 2,
+              width: Math.max(240, rect.width),
+            });
+          }
           setEditing(true);
         }}
         className="w-full h-full flex items-center justify-center px-1"
@@ -63,7 +74,15 @@ const TimelineCell: React.FC<TimelineCellProps> = ({ value, onChange, color = 'h
       {editing && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setEditing(false)} />
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-popover border border-border rounded-lg shadow-xl p-3 min-w-[240px] animate-fade-in">
+          <div
+            className="fixed z-[9999] bg-popover border border-border rounded-lg shadow-xl p-3 animate-fade-in"
+            style={{
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              transform: 'translateX(-50%)',
+              minWidth: dropdownPos.width,
+            }}
+          >
             <div className="space-y-2">
               <div>
                 <label className="text-xs text-muted-foreground">Inicio</label>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Paintbrush } from 'lucide-react';
 
 interface ColorCellProps {
@@ -16,11 +16,28 @@ const PRESET_COLORS = [
 const ColorCell: React.FC<ColorCellProps> = ({ value, onChange }) => {
   const [open, setOpen] = useState(false);
   const [customHex, setCustomHex] = useState(value || '#579BFC');
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 200 });
 
   return (
     <div className="relative w-full h-full">
       <button
-        onClick={() => setOpen(!open)}
+        ref={triggerRef}
+        onClick={() => {
+          if (open) {
+            setOpen(false);
+          } else {
+            if (triggerRef.current) {
+              const rect = triggerRef.current.getBoundingClientRect();
+              setDropdownPos({
+                top: rect.bottom + 4,
+                left: rect.left + rect.width / 2,
+                width: Math.max(200, rect.width),
+              });
+            }
+            setOpen(true);
+          }
+        }}
         className="w-full h-full flex items-center justify-center"
       >
         {value ? (
@@ -35,7 +52,15 @@ const ColorCell: React.FC<ColorCellProps> = ({ value, onChange }) => {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-popover border border-border rounded-lg shadow-xl p-2 min-w-[200px] animate-fade-in">
+          <div
+            className="fixed z-[9999] bg-popover border border-border rounded-lg shadow-xl p-2 animate-fade-in"
+            style={{
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              transform: 'translateX(-50%)',
+              minWidth: dropdownPos.width,
+            }}
+          >
             <div className="grid grid-cols-5 gap-1.5 mb-2">
               {PRESET_COLORS.map((color) => (
                 <button

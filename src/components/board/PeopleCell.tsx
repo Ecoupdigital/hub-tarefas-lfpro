@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { User } from '@/types/board';
 
@@ -22,6 +22,8 @@ const normalizeIds = (value: any): string[] => {
 const PeopleCell: React.FC<PeopleCellProps> = ({ value, onChange }) => {
   const { users } = useApp();
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 180 });
 
   const ids = normalizeIds(value);
   const selectedUsers = users.filter(u => ids.includes(u.id));
@@ -29,7 +31,22 @@ const PeopleCell: React.FC<PeopleCellProps> = ({ value, onChange }) => {
   return (
     <div className="relative w-full h-full">
       <button
-        onClick={() => setOpen(!open)}
+        ref={triggerRef}
+        onClick={() => {
+          if (open) {
+            setOpen(false);
+          } else {
+            if (triggerRef.current) {
+              const rect = triggerRef.current.getBoundingClientRect();
+              setDropdownPos({
+                top: rect.bottom + 4,
+                left: rect.left + rect.width / 2,
+                width: Math.max(180, rect.width),
+              });
+            }
+            setOpen(true);
+          }
+        }}
         className="w-full h-full flex items-center justify-center gap-[-4px] px-1"
       >
         {selectedUsers.length === 0 ? (
@@ -59,7 +76,15 @@ const PeopleCell: React.FC<PeopleCellProps> = ({ value, onChange }) => {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-popover border border-border rounded-lg shadow-xl p-1.5 min-w-[180px] animate-fade-in">
+          <div
+            className="fixed z-[9999] bg-popover border border-border rounded-lg shadow-xl p-1.5 animate-fade-in"
+            style={{
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              transform: 'translateX(-50%)',
+              minWidth: dropdownPos.width,
+            }}
+          >
             {users.map((u, i) => {
               const isSelected = ids.includes(u.id);
               return (

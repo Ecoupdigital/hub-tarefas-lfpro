@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { MapPin } from 'lucide-react';
 
 interface LocationValue {
@@ -17,6 +17,8 @@ const LocationCell: React.FC<LocationCellProps> = ({ value, onChange }) => {
   const [address, setAddress] = useState(value?.address || '');
   const [lat, setLat] = useState(value?.lat?.toString() || '');
   const [lng, setLng] = useState(value?.lng?.toString() || '');
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 260 });
 
   const handleSave = () => {
     const result: LocationValue = { address: address.trim() };
@@ -29,10 +31,19 @@ const LocationCell: React.FC<LocationCellProps> = ({ value, onChange }) => {
   return (
     <div className="relative w-full h-full">
       <button
+        ref={triggerRef}
         onClick={() => {
           setAddress(value?.address || '');
           setLat(value?.lat?.toString() || '');
           setLng(value?.lng?.toString() || '');
+          if (triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setDropdownPos({
+              top: rect.bottom + 4,
+              left: rect.left + rect.width / 2,
+              width: Math.max(260, rect.width),
+            });
+          }
           setEditing(true);
         }}
         className="w-full h-full flex items-center justify-center gap-1 font-density-cell text-foreground px-1"
@@ -49,7 +60,15 @@ const LocationCell: React.FC<LocationCellProps> = ({ value, onChange }) => {
       {editing && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setEditing(false)} />
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-popover border border-border rounded-lg shadow-xl p-3 min-w-[260px] animate-fade-in">
+          <div
+            className="fixed z-[9999] bg-popover border border-border rounded-lg shadow-xl p-3 animate-fade-in"
+            style={{
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              transform: 'translateX(-50%)',
+              minWidth: dropdownPos.width,
+            }}
+          >
             <div className="space-y-2">
               <div>
                 <label className="text-xs text-muted-foreground">Endereco</label>

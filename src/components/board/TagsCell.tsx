@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, Plus } from 'lucide-react';
 
 interface TagsCellProps {
@@ -17,6 +17,8 @@ const getTagColor = (tag: string) => {
 const TagsCell: React.FC<TagsCellProps> = ({ value = [], onChange }) => {
   const [open, setOpen] = useState(false);
   const [newTag, setNewTag] = useState('');
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 180 });
 
   const addTag = () => {
     const t = newTag.trim();
@@ -29,7 +31,21 @@ const TagsCell: React.FC<TagsCellProps> = ({ value = [], onChange }) => {
 
   return (
     <div className="relative w-full h-full">
-      <button onClick={() => setOpen(!open)}
+      <button ref={triggerRef} onClick={() => {
+          if (open) {
+            setOpen(false);
+          } else {
+            if (triggerRef.current) {
+              const rect = triggerRef.current.getBoundingClientRect();
+              setDropdownPos({
+                top: rect.bottom + 4,
+                left: rect.left + rect.width / 2,
+                width: Math.max(180, rect.width),
+              });
+            }
+            setOpen(true);
+          }
+        }}
         className="w-full h-full flex items-center justify-center gap-0.5 px-1 overflow-hidden">
         {value.length > 0 ? value.slice(0, 2).map(tag => (
           <span key={tag} className="px-1.5 py-0 rounded-full font-density-badge font-medium text-white truncate max-w-[60px]"
@@ -42,7 +58,15 @@ const TagsCell: React.FC<TagsCellProps> = ({ value = [], onChange }) => {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-popover border border-border rounded-lg shadow-xl p-2 min-w-[180px] animate-fade-in">
+          <div
+            className="fixed z-[9999] bg-popover border border-border rounded-lg shadow-xl p-2 animate-fade-in"
+            style={{
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              transform: 'translateX(-50%)',
+              minWidth: dropdownPos.width,
+            }}
+          >
             <div className="flex flex-wrap gap-1 mb-2">
               {value.map(tag => (
                 <span key={tag} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full font-density-tiny font-medium text-white"

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Plus, Search, X } from 'lucide-react';
 
 const OPTION_COLORS = ['#579BFC', '#FDAB3D', '#00C875', '#E2445C', '#A25DDC', '#FF642E', '#C4C4C4', '#037F4C', '#FF158A', '#5559DF'];
@@ -15,6 +15,8 @@ const DropdownCell: React.FC<DropdownCellProps> = ({ value, options = [], onChan
   const [search, setSearch] = useState('');
   const [adding, setAdding] = useState(false);
   const [newOpt, setNewOpt] = useState('');
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 160 });
   const showSearch = options.length > 5;
 
   const filtered = useMemo(() => {
@@ -35,7 +37,24 @@ const DropdownCell: React.FC<DropdownCellProps> = ({ value, options = [], onChan
   return (
     <div className="relative w-full h-full">
       <button
-        onClick={() => { setOpen(!open); setSearch(''); setAdding(false); }}
+        ref={triggerRef}
+        onClick={() => {
+          if (open) {
+            setOpen(false);
+          } else {
+            if (triggerRef.current) {
+              const rect = triggerRef.current.getBoundingClientRect();
+              setDropdownPos({
+                top: rect.bottom + 4,
+                left: rect.left + rect.width / 2,
+                width: Math.max(160, rect.width),
+              });
+            }
+            setOpen(true);
+            setSearch('');
+            setAdding(false);
+          }
+        }}
         className="w-full h-full flex items-center justify-center font-density-cell text-foreground px-2"
       >
         {value ? (
@@ -53,7 +72,15 @@ const DropdownCell: React.FC<DropdownCellProps> = ({ value, options = [], onChan
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-popover border border-border rounded-lg shadow-xl p-1.5 min-w-[160px] animate-fade-in">
+          <div
+            className="fixed z-[9999] bg-popover border border-border rounded-lg shadow-xl p-1.5 animate-fade-in"
+            style={{
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              transform: 'translateX(-50%)',
+              minWidth: dropdownPos.width,
+            }}
+          >
             {showSearch && (
               <div className="flex items-center gap-1 px-2 py-1 mb-1 border-b border-border">
                 <Search className="w-3 h-3 text-muted-foreground" />
