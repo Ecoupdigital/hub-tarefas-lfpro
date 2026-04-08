@@ -538,7 +538,7 @@ const MyWork: React.FC = () => {
               {section.items.map(item => (
                 <div
                   key={item.id}
-                  onClick={() => {}}
+                  onClick={() => { if (editingNameId !== item.id) handleItemClick(item); }}
                   className="grid gap-0 border-b border-border last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors"
                   style={{
                     height: 'var(--density-row-h, 36px)',
