@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
 export interface ExtraColumnValue {
+  columnId?: string;
   columnTitle: string;
   columnType: string;
   value: any;
@@ -21,10 +22,12 @@ export interface MyWorkItem {
   position: number;
   createdAt: string;
   updatedAt: string;
-  statusValue?: { value: string; color: string; label: string };
+  statusValue?: { value: string; color: string; label: string; columnId?: string; settings?: any };
   dateValue?: string;
+  dateColumnId?: string;
   startTime?: string;
   endTime?: string;
+  peopleColumnId?: string;
   parentItemId?: string | null;
   parentItemName?: string | null;
   people: { id: string; name: string; avatarUrl?: string }[];

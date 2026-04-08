@@ -40,12 +40,12 @@ export function getAvailableColumns(items: MyWorkItem[]): AvailableColumn[] {
 }
 
 /** Get column value for an item given a column key */
-export function getExtraValue(item: MyWorkItem, colKey: string): { value: any; settings?: any; type: string } | null {
+export function getExtraValue(item: MyWorkItem, colKey: string): { value: any; settings?: any; type: string; columnId?: string } | null {
   if (!item.extraColumns) return null;
   for (const ec of item.extraColumns) {
     const key = `${ec.columnTitle.toLowerCase()}::${ec.columnType}`;
     if (key === colKey) {
-      return { value: ec.value, settings: ec.settings, type: ec.columnType };
+      return { value: ec.value, settings: ec.settings, type: ec.columnType, columnId: ec.columnId };
     }
   }
   return null;

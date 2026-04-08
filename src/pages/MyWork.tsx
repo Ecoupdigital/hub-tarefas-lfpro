@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMyWorkItems, type MyWorkItem } from '@/hooks/useMyWorkItems';
-import { useItemFull } from '@/hooks/useSupabaseData';
+import { useItemFull, useUpdateColumnValue, useUpdateItem } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/hooks/useAuth';
 import {
   startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
@@ -20,6 +20,10 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import WorkColumnSelector, { getAvailableColumns, getExtraValue, loadSelectedColumns } from '@/components/work/WorkColumnSelector';
 import WorkExtraCell from '@/components/work/WorkExtraCell';
+import { renderCellByType } from '@/components/board/table/renderCellByType';
+import ErrorBoundary from '@/components/shared/ErrorBoundary';
+import type { Column } from '@/types/board';
+import { toast } from 'sonner';
 
 interface DateSection {
   key: string;
@@ -249,11 +253,18 @@ function groupByDateSections(
   ].filter(s => s.items.length > 0);
 }
 
+// Read-only column types that should NOT be editable
+const READ_ONLY_TYPES = new Set([
+  'auto_number', 'creation_log', 'last_updated', 'formula', 'mirror', 'connect_boards', 'button',
+]);
+
 const MyWork: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: items = [], isLoading } = useMyWorkItems();
   const { setSelectedItem, updateSelectedItem, setActiveBoardId, selectedItem } = useApp();
+  const updateColVal = useUpdateColumnValue();
+  const updateItemMut = useUpdateItem();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
@@ -263,6 +274,35 @@ const MyWork: React.FC = () => {
   const [customDateEnd, setCustomDateEnd] = useState('');
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [selectedExtraCols, setSelectedExtraCols] = useState<string[]>(() => loadSelectedColumns('mywork'));
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [tempName, setTempName] = useState('');
+
+  // Inline column value update (works cross-board via direct Supabase mutation)
+  const handleColumnChange = useCallback((itemId: string, columnId: string, newValue: unknown) => {
+    updateColVal.mutate(
+      { itemId, columnId, value: newValue },
+      {
+        onError: () => toast.error('Erro ao atualizar valor'),
+      },
+    );
+  }, [updateColVal]);
+
+  // Inline name editing
+  const startEditingName = useCallback((item: MyWorkItem) => {
+    setEditingNameId(item.id);
+    setTempName(item.name);
+  }, []);
+
+  const commitName = useCallback((itemId: string) => {
+    const trimmed = tempName.trim();
+    if (trimmed && trimmed !== items.find(i => i.id === itemId)?.name) {
+      updateItemMut.mutate(
+        { id: itemId, name: trimmed },
+        { onError: () => toast.error('Erro ao renomear item') },
+      );
+    }
+    setEditingNameId(null);
+  }, [tempName, items, updateItemMut]);
 
   const availableExtraCols = useMemo(() => getAvailableColumns(items), [items]);
 
@@ -497,22 +537,44 @@ const MyWork: React.FC = () => {
               {section.items.map(item => (
                 <div
                   key={item.id}
-                  onClick={() => handleItemClick(item)}
+                  onClick={() => { if (editingNameId !== item.id) handleItemClick(item); }}
                   className="grid gap-0 border-b border-border last:border-b-0 hover:bg-muted/30 cursor-pointer transition-colors"
                   style={{
                     height: 'var(--density-row-h, 36px)',
                     gridTemplateColumns: `1fr 120px 100px 130px 120px 100px${selectedExtraCols.map(() => ' 120px').join('')}`,
                   }}
                 >
-                  {/* Item name */}
+                  {/* Item name — double-click to edit inline */}
                   <div className="px-3 flex items-center text-sm font-medium truncate">
-                    {item.parentItemName ? (
-                      <span className="flex items-center gap-1 truncate">
-                        <span className="text-muted-foreground/50 text-xs flex-shrink-0">↳</span>
-                        <span className="truncate">{item.name}</span>
-                        <span className="text-[10px] text-muted-foreground/40 flex-shrink-0 ml-1">({item.parentItemName})</span>
+                    {editingNameId === item.id ? (
+                      <input
+                        value={tempName}
+                        onChange={e => setTempName(e.target.value)}
+                        autoFocus
+                        onClick={e => e.stopPropagation()}
+                        onBlur={() => commitName(item.id)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') { commitName(item.id); }
+                          if (e.key === 'Escape') { setEditingNameId(null); setTempName(''); }
+                        }}
+                        className="flex-1 bg-transparent text-sm font-medium text-foreground outline-none border-b-2 border-primary min-w-0"
+                        aria-label="Editar nome do item"
+                      />
+                    ) : (
+                      <span
+                        onDoubleClick={e => { e.stopPropagation(); startEditingName(item); }}
+                        className="truncate cursor-text select-none"
+                        title="Duplo clique para editar"
+                      >
+                        {item.parentItemName ? (
+                          <span className="flex items-center gap-1 truncate">
+                            <span className="text-muted-foreground/50 text-xs flex-shrink-0">↳</span>
+                            <span className="truncate">{item.name}</span>
+                            <span className="text-[10px] text-muted-foreground/40 flex-shrink-0 ml-1">({item.parentItemName})</span>
+                          </span>
+                        ) : item.name}
                       </span>
-                    ) : item.name}
+                    )}
                   </div>
 
                   {/* Board */}
@@ -531,9 +593,25 @@ const MyWork: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Status */}
-                  <div className="px-3 flex items-center">
-                    {item.statusValue ? (
+                  {/* Status — editable inline */}
+                  <div className="px-1 flex items-center" onClick={e => e.stopPropagation()}>
+                    {item.statusValue?.columnId ? (
+                      <ErrorBoundary fallback={<span className="text-destructive text-xs">!</span>}>
+                        {renderCellByType(
+                          {
+                            id: item.statusValue.columnId,
+                            boardId: item.boardId,
+                            title: 'Status',
+                            type: 'status',
+                            width: 130,
+                            position: 0,
+                            settings: item.statusValue.settings || { labels: {} },
+                          } as Column,
+                          item.statusValue.value,
+                          (v) => handleColumnChange(item.id, item.statusValue!.columnId!, v),
+                        )}
+                      </ErrorBoundary>
+                    ) : item.statusValue ? (
                       <span
                         className="inline-flex items-center justify-center w-full h-6 rounded text-xs font-medium text-white truncate px-2"
                         style={{ backgroundColor: item.statusValue.color }}
@@ -545,54 +623,113 @@ const MyWork: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Date */}
-                  <div className="px-3 flex items-center text-xs">
-                    {(() => {
-                      if (!item.dateValue) return <span className="text-muted-foreground">--</span>;
-                      try {
-                        const d = parseISO(item.dateValue);
-                        if (!isValid(d)) return <span className="text-muted-foreground">--</span>;
-                        return (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3 text-muted-foreground" />
-                            {format(d, 'dd MMM', { locale: ptBR })}
-                            {item.startTime && (
-                              <span className="text-muted-foreground/70 text-[10px]">
-                                {item.startTime}{item.endTime ? `-${item.endTime}` : ''}
-                              </span>
-                            )}
+                  {/* Date — editable inline */}
+                  <div className="px-1 flex items-center text-xs" onClick={e => e.stopPropagation()}>
+                    {item.dateColumnId ? (
+                      <ErrorBoundary fallback={<span className="text-destructive text-xs">!</span>}>
+                        {renderCellByType(
+                          {
+                            id: item.dateColumnId,
+                            boardId: item.boardId,
+                            title: 'Data',
+                            type: 'date',
+                            width: 120,
+                            position: 0,
+                            settings: {},
+                          } as Column,
+                          item.dateValue ? { date: item.dateValue, startTime: item.startTime, endTime: item.endTime } : null,
+                          (v) => handleColumnChange(item.id, item.dateColumnId!, v),
+                        )}
+                      </ErrorBoundary>
+                    ) : (
+                      (() => {
+                        if (!item.dateValue) return <span className="text-muted-foreground">--</span>;
+                        try {
+                          const d = parseISO(item.dateValue);
+                          if (!isValid(d)) return <span className="text-muted-foreground">--</span>;
+                          return (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-muted-foreground" />
+                              {format(d, 'dd MMM', { locale: ptBR })}
+                              {item.startTime && (
+                                <span className="text-muted-foreground/70 text-[10px]">
+                                  {item.startTime}{item.endTime ? `-${item.endTime}` : ''}
+                                </span>
+                              )}
+                            </span>
+                          );
+                        } catch {
+                          return <span className="text-muted-foreground">--</span>;
+                        }
+                      })()
+                    )}
+                  </div>
+
+                  {/* People — editable inline */}
+                  <div className="px-1 flex items-center" onClick={e => e.stopPropagation()}>
+                    {item.peopleColumnId ? (
+                      <ErrorBoundary fallback={<span className="text-destructive text-xs">!</span>}>
+                        {renderCellByType(
+                          {
+                            id: item.peopleColumnId,
+                            boardId: item.boardId,
+                            title: 'Pessoa',
+                            type: 'people',
+                            width: 100,
+                            position: 0,
+                            settings: {},
+                          } as Column,
+                          item.people.map(p => p.id),
+                          (v) => handleColumnChange(item.id, item.peopleColumnId!, v),
+                        )}
+                      </ErrorBoundary>
+                    ) : (
+                      <div className="flex -space-x-1">
+                        {item.people.slice(0, 3).map(person => (
+                          <Avatar key={person.id} className="w-6 h-6 border border-background">
+                            <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
+                              {person.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        ))}
+                        {item.people.length > 3 && (
+                          <span className="text-[10px] text-muted-foreground ml-1">
+                            +{item.people.length - 3}
                           </span>
-                        );
-                      } catch {
-                        return <span className="text-muted-foreground">--</span>;
-                      }
-                    })()}
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  {/* People */}
-                  <div className="px-3 flex items-center">
-                    <div className="flex -space-x-1">
-                      {item.people.slice(0, 3).map(person => (
-                        <Avatar key={person.id} className="w-6 h-6 border border-background">
-                          <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
-                            {person.name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                      ))}
-                      {item.people.length > 3 && (
-                        <span className="text-[10px] text-muted-foreground ml-1">
-                          +{item.people.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Extra columns */}
+                  {/* Extra columns — editable inline when columnId is available */}
                   {selectedExtraCols.map(key => {
                     const extra = getExtraValue(item, key);
+                    const isReadOnly = !extra?.columnId || READ_ONLY_TYPES.has(extra.type);
                     return (
-                      <div key={key} className="px-3 flex items-center text-xs overflow-hidden">
-                        {extra ? <WorkExtraCell value={extra.value} type={extra.type} settings={extra.settings} /> : <span className="text-muted-foreground/40">--</span>}
+                      <div key={key} className="px-1 flex items-center text-xs overflow-hidden" onClick={e => e.stopPropagation()}>
+                        {extra ? (
+                          isReadOnly ? (
+                            <WorkExtraCell value={extra.value} type={extra.type} settings={extra.settings} />
+                          ) : (
+                            <ErrorBoundary fallback={<span className="text-destructive text-xs">!</span>}>
+                              {renderCellByType(
+                                {
+                                  id: extra.columnId!,
+                                  boardId: item.boardId,
+                                  title: key.split('::')[0] || '',
+                                  type: extra.type as any,
+                                  width: 120,
+                                  position: 0,
+                                  settings: extra.settings || {},
+                                } as Column,
+                                extra.value,
+                                (v) => handleColumnChange(item.id, extra.columnId!, v),
+                              )}
+                            </ErrorBoundary>
+                          )
+                        ) : (
+                          <span className="text-muted-foreground/40">--</span>
+                        )}
                       </div>
                     );
                   })}
