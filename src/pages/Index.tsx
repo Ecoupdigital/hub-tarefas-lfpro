@@ -32,18 +32,28 @@ const BoardChangeHandler: React.FC = () => {
 const DefaultViewApplier: React.FC = () => {
   const { activeBoardId, setActiveView, setSort, setHiddenColumns, setAdvancedFilter } = useApp();
   const { data: savedViews = [], isLoading } = useBoardViews(activeBoardId);
-  const appliedRef = useRef<{ boardId: string; viewId: string } | null>(null);
+  const lastBoardRef = useRef<string | null>(null);
+  const appliedForBoardRef = useRef<string | null>(null);
+
+  // Reset "applied" flag whenever board changes
+  useEffect(() => {
+    if (activeBoardId !== lastBoardRef.current) {
+      lastBoardRef.current = activeBoardId;
+      appliedForBoardRef.current = null;
+    }
+  }, [activeBoardId]);
 
   useEffect(() => {
     if (!activeBoardId || isLoading) return;
+    if (appliedForBoardRef.current === activeBoardId) return;
 
     const defaultView = savedViews.find((v: any) => v.is_default);
-    if (!defaultView) return;
+    if (!defaultView) {
+      appliedForBoardRef.current = activeBoardId;
+      return;
+    }
 
-    // Skip if we already applied this exact default view for this board
-    if (appliedRef.current?.boardId === activeBoardId && appliedRef.current?.viewId === defaultView.id) return;
-
-    appliedRef.current = { boardId: activeBoardId, viewId: defaultView.id };
+    appliedForBoardRef.current = activeBoardId;
     const config = defaultView.config as any;
     if (config.activeView) setActiveView(config.activeView);
     if (config.sort !== undefined) setSort(config.sort);
