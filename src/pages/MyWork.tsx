@@ -515,7 +515,7 @@ const MyWork: React.FC = () => {
 
           {/* Section table */}
           {!collapsedSections.has(section.key) && (
-            <div className="ml-6 border border-border rounded-md overflow-x-auto">
+            <div className="ml-6 border border-border rounded-md overflow-x-auto overflow-y-visible">
               {/* Table header */}
               <div
                 className="grid gap-0 bg-muted/50 border-b border-border text-xs font-medium text-muted-foreground uppercase tracking-wide"
@@ -706,7 +706,7 @@ const MyWork: React.FC = () => {
                     const extra = getExtraValue(item, key);
                     const isReadOnly = !extra?.columnId || READ_ONLY_TYPES.has(extra.type);
                     return (
-                      <div key={key} className="px-1 flex items-center text-xs overflow-hidden" onClick={e => e.stopPropagation()}>
+                      <div key={key} className="px-1 flex items-center text-xs" onClick={e => e.stopPropagation()}>
                         {extra ? (
                           isReadOnly ? (
                             <WorkExtraCell value={extra.value} type={extra.type} settings={extra.settings} />
