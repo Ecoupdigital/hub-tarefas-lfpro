@@ -5,6 +5,7 @@ export interface ItemFile {
   id: string;
   item_id: string;
   column_id: string | null;
+  update_id: string | null;
   file_name: string;
   file_size: number;
   file_type: string;
@@ -28,6 +29,22 @@ export const useItemFiles = (itemId: string | null | undefined) =>
     },
   });
 
+// Files attached to a specific update
+export const useUpdateFiles = (updateId: string | null | undefined) =>
+  useQuery({
+    queryKey: ['update_files', updateId],
+    enabled: !!updateId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('item_files')
+        .select('*')
+        .eq('update_id', updateId!)
+        .order('created_at');
+      if (error) throw error;
+      return (data ?? []) as ItemFile[];
+    },
+  });
+
 export const useUploadFile = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -35,10 +52,12 @@ export const useUploadFile = () => {
       file,
       itemId,
       columnId,
+      updateId,
     }: {
       file: File;
       itemId: string;
       columnId?: string;
+      updateId?: string;
     }) => {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
@@ -60,6 +79,7 @@ export const useUploadFile = () => {
           .insert({
             item_id: itemId,
             column_id: columnId || null,
+            update_id: updateId || null,
             file_name: file.name,
             file_size: file.size,
             file_type: file.type,
@@ -80,6 +100,9 @@ export const useUploadFile = () => {
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['item_files', variables.itemId] });
       qc.invalidateQueries({ queryKey: ['column_values'] });
+      if (variables.updateId) {
+        qc.invalidateQueries({ queryKey: ['update_files', variables.updateId] });
+      }
     },
   });
 };

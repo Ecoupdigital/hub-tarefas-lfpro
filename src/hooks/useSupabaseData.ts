@@ -654,8 +654,9 @@ export const useCreateUpdate = () => {
       if (parentUpdateId) {
         insert.parent_update_id = parentUpdateId;
       }
-      const { error } = await supabase.from('updates').insert(insert);
+      const { data, error } = await supabase.from('updates').insert(insert).select('id').single();
       if (error) throw error;
+      return data as { id: string };
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ['updates', vars.itemId] });

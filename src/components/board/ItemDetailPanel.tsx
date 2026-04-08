@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, MoreHorizontal, Send, Pin, MessageSquare, Trash2, FileText, Activity as ActivityIcon, Plus, Copy, ArrowRight, Clock, Link2, ChevronDown, ChevronRight, Reply, Play, Pause, Pencil } from 'lucide-react';
+import { X, MoreHorizontal, Send, Pin, MessageSquare, Trash2, FileText, Activity as ActivityIcon, Plus, Copy, ArrowRight, Clock, Link2, ChevronDown, ChevronRight, Reply, Play, Pause, Pencil, Paperclip, FileIcon } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useUpdates, useCreateUpdate, useToggleUpdatePin, useEditUpdate, useDeleteUpdate, useDuplicateUpdate, useProfiles, useAllSubitems, useItemFull } from '@/hooks/useSupabaseData';
 import { useDeleteItem, useCreateSubitem, useDuplicateItem, useMoveItem } from '@/hooks/useCrudMutations';
@@ -54,6 +54,8 @@ import { useReactionsForItem, useToggleReaction, type Reaction } from '@/hooks/u
 import { useAuth } from '@/hooks/useAuth';
 import { useCanAdmin } from '@/hooks/usePermissions';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
+import { useUploadFile, useUpdateFiles, getFilePublicUrl, type ItemFile } from '@/hooks/useFileUpload';
+import FilePreview from '@/components/shared/FilePreview';
 
 interface UpdateEntry {
   id: string;
@@ -114,6 +116,11 @@ const ItemDetailPanel: React.FC = () => {
   const moveItem = useMoveItem();
   const { pushAction, undo } = useUndoRedo();
   const { data: allSubitems = [] } = useAllSubitems(activeBoardId);
+  const uploadFile = useUploadFile();
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [previewFile, setPreviewFile] = useState<ItemFile | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const currentUserId = user?.id;
 
@@ -186,42 +193,62 @@ const ItemDetailPanel: React.FC = () => {
   }, [itemUpdates]);
 
   const handleSendUpdate = useCallback(async () => {
-    if (!updateText.trim() || !selectedItem || !activeBoard) return;
-    const body = updateText.trim();
-    createUpdate.mutate({ itemId: selectedItem.id, body });
+    const hasText = updateText.trim().length > 0;
+    const hasFiles = pendingFiles.length > 0;
+    if ((!hasText && !hasFiles) || !selectedItem || !activeBoard) return;
+    const body = hasText ? updateText.trim() : '<p>📎 Arquivo(s) anexado(s)</p>';
 
-    // Extract mentions and create notifications
-    const mentionRegex = /@\[([a-f0-9-]+)\]/g;
-    const hasTodos = body.includes('@todos');
-    const mentionedIds = new Set<string>();
+    try {
+      const result = await createUpdate.mutateAsync({ itemId: selectedItem.id, body });
+      const updateId = result?.id;
 
-    let match: RegExpExecArray | null;
-    while ((match = mentionRegex.exec(body)) !== null) {
-      mentionedIds.add(match[1]);
-    }
+      // Upload pending files with the new update ID
+      if (hasFiles && updateId) {
+        for (const file of pendingFiles) {
+          try {
+            await uploadFile.mutateAsync({ file, itemId: selectedItem.id, updateId });
+          } catch (err: any) {
+            toast.error(`Erro ao enviar ${file.name}: ${err.message}`);
+          }
+        }
+      }
 
-    if (hasTodos) {
-      profiles.forEach(p => mentionedIds.add(p.id));
-    }
+      // Extract mentions and create notifications
+      const mentionRegex = /@\[([a-f0-9-]+)\]/g;
+      const hasTodos = body.includes('@todos');
+      const mentionedIds = new Set<string>();
 
-    const { data: userData } = await supabase.auth.getUser();
-    const curUserId = userData.user?.id;
+      let match: RegExpExecArray | null;
+      while ((match = mentionRegex.exec(body)) !== null) {
+        mentionedIds.add(match[1]);
+      }
 
-    for (const userId of mentionedIds) {
-      if (userId === curUserId) continue;
-      await supabase.from('notifications').insert({
-        user_id: userId,
-        type: 'mention',
-        title: `Voce foi mencionado em ${selectedItem.name}`,
-        body: body.slice(0, 200),
-        item_id: selectedItem.id,
-        board_id: activeBoard?.id || null,
-      } as any);
+      if (hasTodos) {
+        profiles.forEach(p => mentionedIds.add(p.id));
+      }
+
+      const { data: userData } = await supabase.auth.getUser();
+      const curUserId = userData.user?.id;
+
+      for (const userId of mentionedIds) {
+        if (userId === curUserId) continue;
+        await supabase.from('notifications').insert({
+          user_id: userId,
+          type: 'mention',
+          title: `Voce foi mencionado em ${selectedItem.name}`,
+          body: body.slice(0, 200),
+          item_id: selectedItem.id,
+          board_id: activeBoard?.id || null,
+        } as any);
+      }
+    } catch (err: any) {
+      toast.error(`Erro ao criar update: ${err.message}`);
     }
 
     setUpdateText('');
-    setEditorKey(k => k + 1); // Força reset do editor rico
-  }, [updateText, selectedItem, profiles, createUpdate, activeBoard]);
+    setPendingFiles([]);
+    setEditorKey(k => k + 1); // Forca reset do editor rico
+  }, [updateText, pendingFiles, selectedItem, profiles, createUpdate, uploadFile, activeBoard]);
 
   const handleSendReply = useCallback((parentId: string) => {
     if (!replyText.trim() || !selectedItem) return;
@@ -452,6 +479,95 @@ const ItemDetailPanel: React.FC = () => {
   };
 
   // Render a single update comment
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const valid: File[] = [];
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`${file.name} excede o limite de 50MB`);
+      } else {
+        valid.push(file);
+      }
+    }
+    setPendingFiles(prev => [...prev, ...valid]);
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, []);
+
+  const removePendingFile = useCallback((index: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // Inline component for update attachments
+  const UpdateAttachments: React.FC<{ updateId: string }> = React.memo(({ updateId }) => {
+    const { data: files = [] } = useUpdateFiles(updateId);
+    if (files.length === 0) return null;
+
+    const images = files.filter(f => f.file_type.startsWith('image/'));
+    const videos = files.filter(f => f.file_type.startsWith('video/'));
+    const docs = files.filter(f => !f.file_type.startsWith('image/') && !f.file_type.startsWith('video/'));
+
+    return (
+      <div className="mt-2 space-y-2">
+        {/* Image grid */}
+        {images.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {images.map(file => {
+              const url = getFilePublicUrl(file.storage_path);
+              return (
+                <button
+                  key={file.id}
+                  onClick={() => { setPreviewFile(file); setPreviewOpen(true); }}
+                  className="rounded-md overflow-hidden border border-border hover:border-primary/50 transition-colors"
+                >
+                  <img src={url} alt={file.file_name} className="w-24 h-24 object-cover" />
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {/* Videos */}
+        {videos.length > 0 && (
+          <div className="space-y-2">
+            {videos.map(file => {
+              const url = getFilePublicUrl(file.storage_path);
+              return (
+                <video key={file.id} src={url} controls className="rounded-md max-w-xs max-h-48 border border-border" />
+              );
+            })}
+          </div>
+        )}
+        {/* Documents */}
+        {docs.length > 0 && (
+          <div className="space-y-1">
+            {docs.map(file => {
+              const url = getFilePublicUrl(file.storage_path);
+              return (
+                <button
+                  key={file.id}
+                  onClick={() => { setPreviewFile(file); setPreviewOpen(true); }}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-muted/50 hover:bg-muted text-xs text-foreground/80 transition-colors w-full text-left"
+                >
+                  <FileIcon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                  <span className="truncate flex-1">{file.file_name}</span>
+                  <span className="text-muted-foreground flex-shrink-0">{formatFileSize(file.file_size)}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  });
+
   const renderComment = (update: UpdateEntry, isReply = false) => {
     const reactions = reactionsByUpdate.get(update.id) || [];
     const replies = repliesByParent.get(update.id) || [];
@@ -548,6 +664,9 @@ const ItemDetailPanel: React.FC = () => {
               )}
             </div>
           )}
+
+          {/* Attachments */}
+          <UpdateAttachments updateId={update.id} />
 
           {/* Emoji Reactions */}
           <EmojiReactions
@@ -824,10 +943,53 @@ const ItemDetailPanel: React.FC = () => {
                   placeholder="Escreva um update... Selecione texto para formatar"
                   minHeight="90px"
                 />
-                <div className="flex justify-end mt-2">
+                {/* Pending files preview */}
+                {pendingFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2 p-2 bg-muted/30 rounded-md border border-border">
+                    {pendingFiles.map((file, idx) => (
+                      <div key={idx} className="relative group/pending">
+                        {file.type.startsWith('image/') ? (
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={file.name}
+                            className="w-16 h-16 object-cover rounded-md border border-border"
+                          />
+                        ) : (
+                          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-muted rounded-md text-xs">
+                            <FileIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="truncate max-w-[120px]">{file.name}</span>
+                            <span className="text-muted-foreground">{formatFileSize(file.size)}</span>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => removePendingFile(idx)}
+                          className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-xs opacity-0 group-hover/pending:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex justify-end gap-2 mt-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    title="Anexar arquivo"
+                  >
+                    <Paperclip className="w-3.5 h-3.5" />
+                  </button>
                   <button
                     onClick={handleSendUpdate}
-                    disabled={createUpdate.isPending || !updateText.trim()}
+                    disabled={createUpdate.isPending || uploadFile.isPending || (!updateText.trim() && pendingFiles.length === 0)}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-md text-xs bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-colors disabled:opacity-50"
                   >
                     <Send className="w-3 h-3" /> Enviar
@@ -1035,6 +1197,13 @@ const ItemDetailPanel: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* File preview dialog for update attachments */}
+      <FilePreview
+        file={previewFile}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+      />
     </>
   );
 };
