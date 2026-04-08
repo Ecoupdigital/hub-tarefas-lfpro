@@ -40,6 +40,49 @@ export const useCreateBoardView = () => {
   });
 };
 
+// Set a view as the default (pin) for a board
+export const useSetDefaultBoardView = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ viewId, boardId }: { viewId: string; boardId: string }) => {
+      // Unset all defaults for this board first
+      const { error: resetError } = await supabase
+        .from('board_views')
+        .update({ is_default: false })
+        .eq('board_id', boardId)
+        .eq('is_default', true);
+      if (resetError) throw resetError;
+
+      // Set the chosen view as default
+      const { error } = await supabase
+        .from('board_views')
+        .update({ is_default: true })
+        .eq('id', viewId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['board_views'] });
+    },
+  });
+};
+
+// Unpin default view for a board
+export const useUnsetDefaultBoardView = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ viewId }: { viewId: string }) => {
+      const { error } = await supabase
+        .from('board_views')
+        .update({ is_default: false })
+        .eq('id', viewId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['board_views'] });
+    },
+  });
+};
+
 // Delete a saved view
 export const useDeleteBoardView = () => {
   const qc = useQueryClient();

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useBoardViews, useCreateBoardView, useDeleteBoardView } from '@/hooks/useBoardViews';
+import { useBoardViews, useCreateBoardView, useDeleteBoardView, useSetDefaultBoardView, useUnsetDefaultBoardView } from '@/hooks/useBoardViews';
 import {
   Table2, Kanban, CalendarDays, GanttChart, BarChart3, LayoutGrid,
-  Bookmark, Trash2, Save, X, Check, ChevronDown,
+  Bookmark, Trash2, Save, X, Check, ChevronDown, Pin,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -45,6 +45,8 @@ const ViewSelector: React.FC = () => {
   const { data: savedViews = [] } = useBoardViews(boardId);
   const createView = useCreateBoardView();
   const deleteView = useDeleteBoardView();
+  const setDefault = useSetDefaultBoardView();
+  const unsetDefault = useUnsetDefaultBoardView();
 
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -99,6 +101,21 @@ const ViewSelector: React.FC = () => {
     toast.success('View aplicada');
   };
 
+  const handleToggleDefault = (e: React.MouseEvent, sv: any) => {
+    e.stopPropagation();
+    if (sv.is_default) {
+      unsetDefault.mutate({ viewId: sv.id }, {
+        onSuccess: () => toast.success('View desafixada'),
+        onError: () => toast.error('Erro ao desafixar view'),
+      });
+    } else {
+      setDefault.mutate({ viewId: sv.id, boardId: activeBoard.id }, {
+        onSuccess: () => toast.success('View fixada como padrão'),
+        onError: () => toast.error('Erro ao fixar view'),
+      });
+    }
+  };
+
   const handleDeleteView = (e: React.MouseEvent, viewId: string) => {
     e.stopPropagation();
     deleteView.mutate(viewId, {
@@ -144,7 +161,15 @@ const ViewSelector: React.FC = () => {
                 >
                   {VIEW_ICONS[viewType] || <Bookmark className="w-3.5 h-3.5" />}
                   <span className="flex-1 text-left truncate">{sv.name}</span>
-                  {isActive && (
+                  {sv.is_default && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Pin className="w-3 h-3 text-primary fill-primary" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top">View padrão</TooltipContent>
+                    </Tooltip>
+                  )}
+                  {isActive && !sv.is_default && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Check className="w-3 h-3 text-primary" />
@@ -152,6 +177,18 @@ const ViewSelector: React.FC = () => {
                       <TooltipContent side="top">View ativa</TooltipContent>
                     </Tooltip>
                   )}
+                  <span
+                    role="button"
+                    onClick={(e) => handleToggleDefault(e, sv)}
+                    className={`p-0.5 rounded hover:bg-primary/10 transition-opacity ${sv.is_default ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                  >
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Pin className={`w-3 h-3 ${sv.is_default ? 'text-primary fill-primary' : 'text-muted-foreground hover:text-primary'}`} />
+                      </TooltipTrigger>
+                      <TooltipContent side="top">{sv.is_default ? 'Desafixar' : 'Fixar como padrão'}</TooltipContent>
+                    </Tooltip>
+                  </span>
                   <span
                     role="button"
                     onClick={(e) => handleDeleteView(e, sv.id)}
