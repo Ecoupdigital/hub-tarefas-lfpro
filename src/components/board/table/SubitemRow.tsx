@@ -42,6 +42,7 @@ export const SubitemRow: React.FC<SubitemRowProps> = ({ subitem, columns, getCol
   };
 
   const handleCheckboxChange = (e: React.MouseEvent<HTMLInputElement>) => {
+    e.stopPropagation();
     if (e.shiftKey && lastSelectedId && lastSelectedId !== subitem.id) {
       selectRange(allItemIds, lastSelectedId, subitem.id);
     } else {

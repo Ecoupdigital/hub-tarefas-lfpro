@@ -122,7 +122,7 @@ const BatchActionsBar: React.FC = () => {
 
   return (
     <>
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 bg-card border border-border rounded-lg shadow-lg px-3 py-2 animate-in slide-in-from-bottom-4 duration-200">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-1.5 bg-card border border-border rounded-lg shadow-lg px-3 py-2 animate-in slide-in-from-bottom-4 duration-200">
         {/* Contador */}
         <span className="text-sm font-medium text-foreground mr-1">
           {count} {count === 1 ? 'item selecionado' : 'itens selecionados'}
