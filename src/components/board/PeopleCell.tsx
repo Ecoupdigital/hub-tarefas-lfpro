@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
+import { useProfiles } from '@/hooks/useSupabaseData';
 import { User } from '@/types/board';
 
 interface PeopleCellProps {
@@ -21,12 +22,15 @@ const normalizeIds = (value: any): string[] => {
 
 const PeopleCell: React.FC<PeopleCellProps> = ({ value, onChange }) => {
   const { users } = useApp();
+  const { data: profiles = [] } = useProfiles();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 180 });
 
   const ids = normalizeIds(value);
-  const selectedUsers = users.filter(u => ids.includes(u.id));
+  // Use board users when available, fall back to profiles (for MyWork cross-board context)
+  const allUsers = users.length > 0 ? users : profiles.map(p => ({ id: p.id, name: p.name || p.email || 'Usuario', avatarUrl: p.avatar_url } as User));
+  const selectedUsers = allUsers.filter(u => ids.includes(u.id));
 
   return (
     <div className="relative w-full h-full">
@@ -85,7 +89,7 @@ const PeopleCell: React.FC<PeopleCellProps> = ({ value, onChange }) => {
               minWidth: dropdownPos.width,
             }}
           >
-            {users.map((u, i) => {
+            {allUsers.map((u, i) => {
               const isSelected = ids.includes(u.id);
               return (
                 <button
