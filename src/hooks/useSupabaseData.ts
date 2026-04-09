@@ -270,29 +270,44 @@ export const useBatchUpdateColumnValue = () => {
 
   return useMutation({
     mutationFn: async (updates: BatchColumnUpdate[]) => {
-      const results = await Promise.allSettled(
-        updates.map(({ itemId, columnId, value, text }) =>
-          supabase.from('column_values').upsert(
+      const results = await Promise.all(
+        updates.map(async ({ itemId, columnId, value, text }) => {
+          const { error } = await supabase.from('column_values').upsert(
             { item_id: itemId, column_id: columnId, value, text_representation: text },
             { onConflict: 'item_id,column_id' }
-          )
-        )
+          );
+          return { itemId, error };
+        })
       );
-      const failed = results.filter(r => r.status === 'rejected').length;
+      const failed = results.filter(r => r.error).length;
+      if (failed > 0) {
+        console.error('Batch update errors:', results.filter(r => r.error).map(r => ({ itemId: r.itemId, error: r.error })));
+      }
       return { total: updates.length, failed };
     },
     onMutate: async (updates) => {
       await qc.cancelQueries({ queryKey: ['column_values'] });
       const previousData = qc.getQueriesData({ queryKey: ['column_values'] });
 
-      // Aplicar optimistic update unificado para todos os itens de uma vez
+      // Aplicar optimistic update: atualizar existentes + adicionar novos
       qc.setQueriesData({ queryKey: ['column_values'] }, (old: unknown) => {
         if (!Array.isArray(old)) return old;
         const map = new Map(updates.map(u => [`${u.itemId}|${u.columnId}`, u]));
-        return old.map((cv: any) => {
-          const u = map.get(`${cv.item_id}|${cv.column_id}`);
-          return u ? { ...cv, value: u.value, text_representation: u.text } : cv;
+        const updated = new Set<string>();
+        const result = old.map((cv: any) => {
+          const key = `${cv.item_id}|${cv.column_id}`;
+          const u = map.get(key);
+          if (u) { updated.add(key); return { ...cv, value: u.value, text_representation: u.text }; }
+          return cv;
         });
+        // Adicionar entries que não existiam (subitems sem valor prévio)
+        for (const u of updates) {
+          const key = `${u.itemId}|${u.columnId}`;
+          if (!updated.has(key)) {
+            result.push({ id: `temp-${key}`, item_id: u.itemId, column_id: u.columnId, value: u.value, text_representation: u.text });
+          }
+        }
+        return result;
       });
 
       return { previousData };
