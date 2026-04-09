@@ -647,7 +647,7 @@ const MyWork: React.FC = () => {
                             position: 0,
                             settings: {},
                           } as Column,
-                          item.dateValue ? { date: item.dateValue, startTime: item.startTime, endTime: item.endTime } : null,
+                          item.dateValue ? (item.startTime || item.endTime ? JSON.stringify({ date: item.dateValue, startTime: item.startTime || '', endTime: item.endTime || '' }) : item.dateValue) : null,
                           (v) => handleColumnChange(item.id, item.dateColumnId!, v),
                         )}
                       </ErrorBoundary>
