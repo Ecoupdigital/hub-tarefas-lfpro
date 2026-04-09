@@ -126,7 +126,14 @@ BEGIN
     WHERE cv.item_id IN (SELECT id FROM active_items)
     GROUP BY cv.item_id
   ),
-  -- Extra columns: all column_values NOT already covered by fixed columns
+  -- Collect the specific column IDs already used by fixed columns (status, date, people)
+  -- so we exclude only THOSE, not all columns of those types
+  fixed_col_ids AS (
+    SELECT status_column_id AS col_id FROM item_status WHERE status_column_id IS NOT NULL
+    UNION SELECT date_column_id FROM item_date WHERE date_column_id IS NOT NULL
+    UNION SELECT people_column_id::uuid FROM item_people WHERE people_column_id IS NOT NULL
+  ),
+  -- Extra columns: all column_values NOT already covered by the specific fixed columns
   -- Now includes columnId for inline editing support
   item_extra AS (
     SELECT cv.item_id,
@@ -142,7 +149,7 @@ BEGIN
     FROM column_values cv
     JOIN columns c ON c.id = cv.column_id
     WHERE cv.item_id IN (SELECT id FROM active_items)
-      AND c.column_type NOT IN ('people', 'status', 'date')
+      AND c.id NOT IN (SELECT col_id FROM fixed_col_ids)
       AND cv.value IS NOT NULL
       AND cv.value::text <> 'null'
       AND cv.value::text <> '""'
