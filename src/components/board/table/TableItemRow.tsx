@@ -37,6 +37,7 @@ export interface SortableItemRowProps {
   groups: Group[];
   onEditColumn?: (col: Column) => void;
   getColumnWidth: (col: Column) => number;
+  nameColumnWidth: number;
   allItemIds: string[];
   colorRules?: ColorRule[];
   onFilePreview?: (file: ItemFile) => void;
@@ -54,9 +55,10 @@ const SortableSubitems: React.FC<{
   subitems: any[];
   columns: Column[];
   getColumnWidth: (col: Column) => number;
+  nameColumnWidth: number;
   parentItem: any;
   allItemIds: string[];
-}> = ({ subitems, columns, getColumnWidth, parentItem, allItemIds }) => {
+}> = ({ subitems, columns, getColumnWidth, nameColumnWidth, parentItem, allItemIds }) => {
   const reorderItem = useReorderItem();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -90,14 +92,14 @@ const SortableSubitems: React.FC<{
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={subitemIds} strategy={verticalListSortingStrategy}>
         {subitems.map(sub => (
-          <SubitemRow key={sub.id} subitem={sub} columns={columns} getColumnWidth={getColumnWidth} parentItem={parentItem} allItemIds={allItemIds} />
+          <SubitemRow key={sub.id} subitem={sub} columns={columns} getColumnWidth={getColumnWidth} nameColumnWidth={nameColumnWidth} parentItem={parentItem} allItemIds={allItemIds} />
         ))}
       </SortableContext>
     </DndContext>
   );
 };
 
-export const SortableItemRow: React.FC<SortableItemRowProps> = React.memo(({ item, columns, boardId, subitems, groups, onEditColumn, getColumnWidth, allItemIds, colorRules, onFilePreview, isBlocked, blockedByNames }) => {
+export const SortableItemRow: React.FC<SortableItemRowProps> = React.memo(({ item, columns, boardId, subitems, groups, onEditColumn, getColumnWidth, nameColumnWidth, allItemIds, colorRules, onFilePreview, isBlocked, blockedByNames }) => {
   const { setSelectedItem, updateItemColumnValue, updateItemName } = useApp();
   const { isSelected, toggleItem, selectRange, lastSelectedId, setLastSelectedId, selectedItems, hasMultiSelection } = useSelection();
   const [editingName, setEditingName] = useState(false);
@@ -204,7 +206,7 @@ export const SortableItemRow: React.FC<SortableItemRowProps> = React.memo(({ ite
             className={`flex items-stretch border-b border-cell-border hover:bg-muted/40 transition-colors group/row density-row ${selected ? 'bg-primary/10 border-l-2 border-l-primary' : 'border-l-2 border-l-transparent'} ${isDragging ? 'bg-primary/10 border-primary/30' : ''}`}
             {...attributes}
           >
-            <div role="gridcell" className={`sticky left-0 z-10 ${selected ? 'bg-primary/5' : 'bg-cell'} group-hover/row:bg-muted/40 transition-colors flex items-center min-w-[320px] w-[320px] border-r border-cell-border`}>
+            <div role="gridcell" className={`sticky left-0 z-10 ${selected ? 'bg-primary/5' : 'bg-cell'} group-hover/row:bg-muted/40 transition-colors flex items-center border-r border-cell-border`} style={{ minWidth: nameColumnWidth, width: nameColumnWidth }}>
               <div
                 className="w-5 flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
                 {...listeners}
@@ -358,9 +360,9 @@ export const SortableItemRow: React.FC<SortableItemRowProps> = React.memo(({ ite
           </div>
           {expanded && (
             <>
-              <SortableSubitems subitems={subitems} columns={columns} getColumnWidth={getColumnWidth} parentItem={item} allItemIds={allItemIds} />
+              <SortableSubitems subitems={subitems} columns={columns} getColumnWidth={getColumnWidth} nameColumnWidth={nameColumnWidth} parentItem={item} allItemIds={allItemIds} />
               <div className="flex items-center border-b border-cell-border density-row-sub bg-muted/20">
-                <div className="sticky left-0 z-20 bg-card min-w-[320px] w-[320px] border-r border-cell-border flex items-center pl-14">
+                <div className="sticky left-0 z-20 bg-card border-r border-cell-border flex items-center pl-14" style={{ minWidth: nameColumnWidth, width: nameColumnWidth }}>
                   {addingSubitem ? (
                     <input value={newSubName} onChange={e => setNewSubName(e.target.value)} placeholder="Nome do subitem" autoFocus
                       onBlur={() => { if (newSubName.trim()) handleAddSubitem(); else setAddingSubitem(false); }}
@@ -377,7 +379,7 @@ export const SortableItemRow: React.FC<SortableItemRowProps> = React.memo(({ ite
           )}
           {!expanded && addingSubitem && (
             <div className="flex items-center border-b border-cell-border density-row-sub bg-muted/20">
-              <div className="sticky left-0 z-10 min-w-[320px] w-[320px] border-r border-cell-border flex items-center pl-14">
+              <div className="sticky left-0 z-10 border-r border-cell-border flex items-center pl-14" style={{ minWidth: nameColumnWidth, width: nameColumnWidth }}>
                 <input value={newSubName} onChange={e => setNewSubName(e.target.value)} placeholder="Nome do subitem" autoFocus
                   onBlur={() => { if (newSubName.trim()) handleAddSubitem(); else setAddingSubitem(false); }}
                   onKeyDown={e => { if (e.key === 'Enter') handleAddSubitem(); if (e.key === 'Escape') { setNewSubName(''); setAddingSubitem(false); } }}

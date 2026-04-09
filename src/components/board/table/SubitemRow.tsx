@@ -13,11 +13,12 @@ interface SubitemRowProps {
   subitem: any;
   columns: Column[];
   getColumnWidth: (col: Column) => number;
+  nameColumnWidth: number;
   parentItem?: any;
   allItemIds: string[];
 }
 
-export const SubitemRow: React.FC<SubitemRowProps> = ({ subitem, columns, getColumnWidth, parentItem, allItemIds }) => {
+export const SubitemRow: React.FC<SubitemRowProps> = ({ subitem, columns, getColumnWidth, nameColumnWidth, parentItem, allItemIds }) => {
   const { updateItemColumnValue, updateItemName, setSelectedItem, setSelectedItemWithStack } = useApp();
   const { isSelected, toggleItem, selectRange, lastSelectedId, setLastSelectedId } = useSelection();
   const [editingName, setEditingName] = useState(false);
@@ -57,7 +58,7 @@ export const SubitemRow: React.FC<SubitemRowProps> = ({ subitem, columns, getCol
       style={style}
       className={`group/subrow flex items-stretch border-b border-cell-border hover:bg-row-hover/40 transition-colors density-row-sub bg-muted/20 ${selected ? 'bg-primary/5' : ''}`}
     >
-      <div className="sticky left-0 z-20 bg-card group-hover/subrow:bg-row-hover/40 transition-colors flex items-center min-w-[320px] w-[320px] border-r border-cell-border pl-6 pr-2">
+      <div className="sticky left-0 z-20 bg-card group-hover/subrow:bg-row-hover/40 transition-colors flex items-center border-r border-cell-border pl-6 pr-2" style={{ minWidth: nameColumnWidth, width: nameColumnWidth }}>
         <span
           {...attributes}
           {...listeners}

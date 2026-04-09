@@ -153,7 +153,7 @@ export const GroupSection: React.FC<{ group: Group; columns: Column[]; boardId: 
   const [showColorPicker, setShowColorPicker] = useState(false);
   const deleteGroup = useDeleteGroup();
   const updateGroup = useUpdateGroup();
-  const { getColumnWidth, startResize } = useColumnResize();
+  const { getColumnWidth, startResize, nameColumnWidth, startNameResize } = useColumnResize();
 
   const handleDeleteGroup = async () => {
     try { await deleteGroup.mutateAsync(group.id); toast.success('Grupo excluido'); } catch { toast.error('Erro ao excluir grupo'); }
@@ -272,7 +272,7 @@ export const GroupSection: React.FC<{ group: Group; columns: Column[]; boardId: 
         <DroppableGroup groupId={group.id}>
           <>
             <div className="flex border-b-2 border-t density-row" style={{ borderColor: group.color }} role="row">
-              <div role="columnheader" className="sticky left-0 z-10 bg-board-header min-w-[320px] w-[320px] border-r border-cell-border flex items-center">
+              <div role="columnheader" className="group/nameheader sticky left-0 z-10 bg-board-header border-r border-cell-border flex items-center relative" style={{ minWidth: nameColumnWidth, width: nameColumnWidth }}>
                 <div className="w-5 flex-shrink-0" />
                 <span className="w-5 flex-shrink-0" />
                 <input
@@ -283,6 +283,13 @@ export const GroupSection: React.FC<{ group: Group; columns: Column[]; boardId: 
                   className="w-4 h-4 rounded-[3px] border-muted-foreground/30 mr-2 cursor-pointer"
                 />
                 <span className="font-density-header font-medium text-muted-foreground">Item</span>
+                {/* Resize handle */}
+                <div
+                  className="absolute right-0 top-0 h-full w-2 cursor-col-resize z-10 opacity-0 group-hover/nameheader:opacity-100 hover:opacity-100 flex items-center justify-center transition-opacity"
+                  onMouseDown={e => { e.stopPropagation(); e.preventDefault(); startNameResize(e.clientX); }}
+                >
+                  <div className="w-0.5 h-4 bg-primary/60 rounded-full" />
+                </div>
               </div>
               <SortableColumnHeaders
                 columns={columns}
@@ -306,6 +313,7 @@ export const GroupSection: React.FC<{ group: Group; columns: Column[]; boardId: 
                 return <SortableItemRow key={item.id} item={item} columns={columns} boardId={boardId} subitems={subs} groups={allGroups}
                   onEditColumn={(col) => setEditColumn({ id: col.id, title: col.title, type: col.type, settings: col.settings, boardId })}
                   getColumnWidth={getColumnWidth}
+                  nameColumnWidth={nameColumnWidth}
                   allItemIds={allItemIds}
                   colorRules={colorRules}
                   onFilePreview={onFilePreview}
@@ -315,7 +323,7 @@ export const GroupSection: React.FC<{ group: Group; columns: Column[]; boardId: 
             </SortableContext>
 
             <div className="flex items-stretch border-b border-cell-border density-row">
-              <div className="sticky left-0 z-10 bg-cell min-w-[320px] w-[320px] border-r border-cell-border flex items-center pl-[62px] pr-2">
+              <div className="sticky left-0 z-10 bg-cell border-r border-cell-border flex items-center pl-[62px] pr-2" style={{ minWidth: nameColumnWidth, width: nameColumnWidth }}>
                 {addingItem ? (
                   <input value={newItemName} onChange={(e) => setNewItemName(e.target.value)}
                     placeholder="Nome do item" autoFocus
