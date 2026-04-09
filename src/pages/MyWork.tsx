@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useMyWorkItems, type MyWorkItem } from '@/hooks/useMyWorkItems';
 import { useItemFull, useUpdateColumnValue, useUpdateItem } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/hooks/useAuth';
@@ -263,6 +264,7 @@ const MyWork: React.FC = () => {
   const { user } = useAuth();
   const { data: items = [], isLoading } = useMyWorkItems();
   const { setSelectedItem, updateSelectedItem, setActiveBoardId, selectedItem } = useApp();
+  const queryClient = useQueryClient();
   const updateColVal = useUpdateColumnValue();
   const updateItemMut = useUpdateItem();
 
@@ -283,10 +285,13 @@ const MyWork: React.FC = () => {
     updateColVal.mutate(
       { itemId, columnId, value: newValue },
       {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['my-work-items'] });
+        },
         onError: () => toast.error('Erro ao atualizar valor'),
       },
     );
-  }, [updateColVal]);
+  }, [updateColVal, queryClient]);
 
   // Inline name editing
   const startEditingName = useCallback((item: MyWorkItem) => {
