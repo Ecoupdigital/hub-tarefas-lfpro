@@ -338,6 +338,10 @@
 .rich-text-display ul { list-style-type: disc; padding-left: 1.5em; }
 .rich-text-display ol { list-style-type: decimal; padding-left: 1.5em; }
 .rich-text-display p { margin: 0.15em 0; }
+.rich-text-display p:empty,
+.rich-text-display p:has(br:only-child) { min-height: 1em; }
+.rich-editor-content .ProseMirror p:empty,
+.rich-editor-content .ProseMirror p:has(br:only-child) { min-height: 1em; }
 
 /* ── Monday Typography Utilities ── */
 
