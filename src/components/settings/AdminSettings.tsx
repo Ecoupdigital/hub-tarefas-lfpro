@@ -157,10 +157,47 @@ const UserManagementTab: React.FC = () => {
     if (!inviteEmail.trim()) return;
     setInviteLoading(true);
     try {
+      // First check if user already exists in profiles
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id, name, email')
+        .eq('email', inviteEmail.trim().toLowerCase())
+        .maybeSingle();
+
+      if (existingProfile) {
+        // User exists — just add to workspace(s) and set role
+        const { data: workspaces } = await supabase.from('workspaces').select('id');
+        if (workspaces && workspaces.length > 0) {
+          for (const ws of workspaces) {
+            await supabase.from('workspace_members').upsert(
+              { workspace_id: ws.id, user_id: existingProfile.id, role: 'member' },
+              { onConflict: 'workspace_id,user_id' }
+            );
+          }
+        }
+        await supabase.from('user_roles').upsert(
+          { user_id: existingProfile.id, role: 'member' },
+          { onConflict: 'user_id' }
+        );
+        toast.success(`${existingProfile.name || inviteEmail} adicionado aos workspaces`);
+        setInviteEmail('');
+        setInviteName('');
+        setShowInviteModal(false);
+        refetchProfiles();
+        return;
+      }
+
+      // User doesn't exist — invite via Edge Function
       const { data, error } = await supabase.functions.invoke('invite-user', {
         body: { email: inviteEmail.trim(), name: inviteName.trim() || undefined },
       });
-      if (error) throw error;
+      if (error) {
+        // Try to parse the error body for a meaningful message
+        const errMsg = typeof error === 'object' && 'message' in error
+          ? error.message
+          : String(error);
+        throw new Error(errMsg);
+      }
       if (data?.error) throw new Error(data.error);
       toast.success(`Convite enviado para ${inviteEmail.trim()}`);
       setInviteEmail('');
@@ -168,7 +205,13 @@ const UserManagementTab: React.FC = () => {
       setShowInviteModal(false);
       refetchProfiles();
     } catch (err: any) {
-      toast.error(err?.message || 'Erro ao enviar convite');
+      const msg = err?.message || 'Erro ao enviar convite';
+      // Provide helpful message for common errors
+      if (msg.includes('non-2xx') || msg.includes('FunctionsHttpError')) {
+        toast.error('Erro na Edge Function. Verifique se o SMTP está configurado no Supabase ou convide o usuário para se cadastrar manualmente.');
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setInviteLoading(false);
     }
