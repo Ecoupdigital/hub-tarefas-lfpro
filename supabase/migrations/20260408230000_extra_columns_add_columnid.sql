@@ -34,13 +34,19 @@ BEGIN
        OR cv.value @> jsonb_build_object('userIds', jsonb_build_array(p_user_id::text))
   ),
   active_items AS (
+    -- Inclui items E subitems (parent_item_id pode ser NULL ou preenchido)
     SELECT i.id, i.name, i.board_id, i.group_id, i.position,
-           i.created_at, i.updated_at
+           i.created_at, i.updated_at, i.parent_item_id
     FROM items i
     JOIN assigned_item_ids ai ON ai.item_id = i.id
     JOIN boards b ON b.id = i.board_id AND b.state = 'active'
-    WHERE i.parent_item_id IS NULL
-      AND (i.state IS NULL OR i.state = 'active')
+    WHERE (i.state IS NULL OR i.state = 'active')
+  ),
+  parent_items AS (
+    -- Buscar nome do item pai para subitems
+    SELECT i.id, i.name
+    FROM items i
+    WHERE i.id IN (SELECT DISTINCT parent_item_id FROM active_items WHERE parent_item_id IS NOT NULL)
   ),
   item_status AS (
     SELECT DISTINCT ON (cv.item_id)
@@ -168,6 +174,8 @@ BEGIN
         'position',    ai.position,
         'createdAt',   ai.created_at,
         'updatedAt',   ai.updated_at,
+        'parentItemId',   ai.parent_item_id,
+        'parentItemName', pi.name,
         'statusValue', CASE
           WHEN ist.status_key IS NOT NULL THEN jsonb_build_object(
             'value', ist.status_key,
@@ -207,6 +215,7 @@ BEGIN
   FROM active_items ai
   JOIN boards b ON b.id = ai.board_id
   LEFT JOIN groups g   ON g.id   = ai.group_id
+  LEFT JOIN parent_items pi ON pi.id = ai.parent_item_id
   LEFT JOIN item_status ist ON ist.item_id = ai.id
   LEFT JOIN item_date   id2 ON id2.item_id = ai.id
   LEFT JOIN item_people ip  ON ip.item_id  = ai.id
