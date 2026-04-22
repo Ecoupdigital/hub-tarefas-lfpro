@@ -535,7 +535,7 @@ const BoardHeader: React.FC = () => {
             <PopoverContent className="w-52 p-3" align="start">
               <p className="font-density-cell font-medium text-foreground mb-2">Ocultar/mostrar colunas</p>
               <div className="space-y-1">
-                {activeBoard.columns.map(col => {
+                {rawColumnsForTemplate.map(col => {
                   const hidden = hiddenColumns.includes(col.id);
                   return (
                     <button key={col.id} onClick={() => toggleHiddenColumn(col.id)}
