@@ -72,7 +72,7 @@ const PagePage: React.FC = () => {
 
   if (error || !page) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen text-center px-6">
+      <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
         <h2 className="font-heading text-xl font-bold mb-2">Pagina nao encontrada</h2>
         <p className="text-sm text-muted-foreground">
           A pagina nao existe ou voce nao tem permissao para acessa-la.
@@ -83,7 +83,7 @@ const PagePage: React.FC = () => {
 
   if (page.state !== 'active') {
     return (
-      <div className="flex flex-col items-center justify-center h-screen text-center px-6">
+      <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
         <h2 className="font-heading text-xl font-bold mb-2">Pagina arquivada</h2>
         <p className="text-sm text-muted-foreground">
           Esta pagina foi removida. Restaure-a na lixeira para edita-la.
@@ -107,7 +107,7 @@ const PagePage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex-1 flex flex-col min-w-0 bg-background">
       <PageHeader
         pageId={page.id}
         initialTitle={page.title}

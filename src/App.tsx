@@ -15,7 +15,6 @@ const NotFound = React.lazy(() => import("./pages/NotFound"));
 const PublicForm = React.lazy(() => import("./pages/PublicForm"));
 const SharedBoard = React.lazy(() => import("./pages/SharedBoard"));
 const Settings = React.lazy(() => import("./pages/Settings"));
-const PagePage = React.lazy(() => import("./pages/Page"));
 
 const queryClient = new QueryClient();
 
@@ -48,7 +47,7 @@ const ProtectedApp = () => (
       <Route path="/my-work" element={<Index />} />
       <Route path="/team-work" element={<Index />} />
       <Route path="/settings/*" element={<Settings />} />
-      <Route path="/page/:pageId" element={<PagePage />} />
+      <Route path="/page/:pageId" element={<Index />} />
     </Routes>
   </AppProvider>
 );

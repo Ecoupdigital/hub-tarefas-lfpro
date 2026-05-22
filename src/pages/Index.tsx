@@ -83,6 +83,7 @@ const WorkspaceOverview = React.lazy(() => import('@/components/workspace/Worksp
 const BoardCards = React.lazy(() => import('@/components/board/BoardCards'));
 const MyWork = React.lazy(() => import('@/pages/MyWork'));
 const TeamWork = React.lazy(() => import('@/pages/TeamWork'));
+const PagePage = React.lazy(() => import('@/pages/Page'));
 
 // Lazy-loaded modal/panel components (only rendered on demand)
 const ItemDetailPanel = React.lazy(() => import('@/components/board/ItemDetailPanel'));
@@ -112,10 +113,11 @@ const Index = () => {
   const location = useLocation();
   const isMyWorkPage = location.pathname === '/my-work';
   const isTeamWorkPage = location.pathname === '/team-work';
+  const isPagePage = location.pathname.startsWith('/page/');
 
   // URL → Context sync: only reacts to URL param changes (boardId from router)
   useEffect(() => {
-    if (isMyWorkPage || isTeamWorkPage) return;
+    if (isMyWorkPage || isTeamWorkPage || isPagePage) return;
 
     if (workspaceId) {
       setActiveWorkspaceId(workspaceId);
@@ -129,7 +131,7 @@ const Index = () => {
 
   // Context → URL sync: when context has board but URL doesn't (onboarding, restore)
   useEffect(() => {
-    if (isMyWorkPage || isTeamWorkPage) return;
+    if (isMyWorkPage || isTeamWorkPage || isPagePage) return;
     if (boardId || workspaceId) return; // URL already has a target
     if (activeBoardId) {
       localStorage.setItem(LAST_BOARD_KEY, activeBoardId);
@@ -144,7 +146,7 @@ const Index = () => {
 
   // Tab switch → URL update (when tab changes via TabBar/keyboard, not URL)
   useEffect(() => {
-    if (!activeTab || isMyWorkPage || isTeamWorkPage) return;
+    if (!activeTab || isMyWorkPage || isTeamWorkPage || isPagePage) return;
     if (activeTab.boardId !== boardId) {
       navigate(`/board/${activeTab.boardId}`, { replace: true });
     }
@@ -202,6 +204,14 @@ const Index = () => {
   }, []);
 
   const renderView = () => {
+    // Page (Docs Mode) — Notion-like editor
+    if (isPagePage) {
+      return (
+        <Suspense fallback={<ViewFallback />}>
+          <PagePage />
+        </Suspense>
+      );
+    }
     // My Work page
     if (isMyWorkPage) {
       return (
@@ -300,8 +310,8 @@ const Index = () => {
               <AppSidebar />
             </ErrorBoundary>
             <div className="flex-1 flex flex-col min-w-0">
-              {!isMyWorkPage && !isTeamWorkPage && <TabBar />}
-              {!isMyWorkPage && !isTeamWorkPage && <BoardHeader />}
+              {!isMyWorkPage && !isTeamWorkPage && !isPagePage && <TabBar />}
+              {!isMyWorkPage && !isTeamWorkPage && !isPagePage && <BoardHeader />}
               <ErrorBoundary key={activeBoardId ?? 'no-board'}>
                 <div className="flex-1 overflow-hidden px-3 sm:px-6 pt-4 pb-4 flex">
                   {renderView()}
