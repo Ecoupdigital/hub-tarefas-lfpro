@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useCreateBoard } from '@/hooks/useCrudMutations';
+import { useCreateBoard, useCreatePage } from '@/hooks/useCrudMutations';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { defaultTemplates, BoardTemplate } from '@/data/boardTemplates';
@@ -19,8 +19,12 @@ interface Props {
   preselectedTemplate?: BoardTemplate | null;
 }
 
+type Step = 'type-select' | 'template' | 'details';
+type CreationType = 'board' | 'page';
+
 const CreateBoardModal: React.FC<Props> = ({ open, onOpenChange, workspaceId, preselectedTemplate }) => {
-  const [step, setStep] = useState<'template' | 'details'>('template');
+  const [step, setStep] = useState<Step>('type-select');
+  const [creationType, setCreationType] = useState<CreationType>('board');
   const [selectedTemplate, setSelectedTemplate] = useState<BoardTemplate>(
     defaultTemplates.find(t => t.id === 'blank')!
   );
@@ -29,6 +33,7 @@ const CreateBoardModal: React.FC<Props> = ({ open, onOpenChange, workspaceId, pr
   const [isCreating, setIsCreating] = useState(false);
 
   const createBoard = useCreateBoard();
+  const createPage = useCreatePage();
   const navigate = useNavigate();
   const { data: dbTemplates = [] } = useWorkspaceTemplates(workspaceId);
 
@@ -50,6 +55,7 @@ const CreateBoardModal: React.FC<Props> = ({ open, onOpenChange, workspaceId, pr
   // Handle pre-selected template from TemplateCenter
   useEffect(() => {
     if (open && preselectedTemplate) {
+      setCreationType('board');
       setSelectedTemplate(preselectedTemplate);
       setName(preselectedTemplate.id !== 'blank' ? preselectedTemplate.name : '');
       setDescription(
@@ -62,7 +68,8 @@ const CreateBoardModal: React.FC<Props> = ({ open, onOpenChange, workspaceId, pr
   }, [open, preselectedTemplate]);
 
   const resetState = () => {
-    setStep('template');
+    setStep('type-select');
+    setCreationType('board');
     setSelectedTemplate(defaultTemplates.find(t => t.id === 'blank')!);
     setName('');
     setDescription('');
@@ -72,6 +79,15 @@ const CreateBoardModal: React.FC<Props> = ({ open, onOpenChange, workspaceId, pr
   const handleOpenChange = (open: boolean) => {
     if (!open) resetState();
     onOpenChange(open);
+  };
+
+  const handleSelectType = (type: CreationType) => {
+    setCreationType(type);
+    if (type === 'board') {
+      setStep('template');
+    } else {
+      setStep('details');
+    }
   };
 
   const handleSelectTemplate = (template: BoardTemplate) => {
@@ -85,7 +101,11 @@ const CreateBoardModal: React.FC<Props> = ({ open, onOpenChange, workspaceId, pr
   };
 
   const handleBack = () => {
-    setStep('template');
+    if (creationType === 'page') {
+      setStep('type-select');
+    } else {
+      setStep('template');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,14 +113,26 @@ const CreateBoardModal: React.FC<Props> = ({ open, onOpenChange, workspaceId, pr
     if (!name.trim()) return;
     setIsCreating(true);
     try {
-      // 1. Criar o board
+      if (creationType === 'page') {
+        const page = await createPage.mutateAsync({
+          workspaceId,
+          title: name.trim(),
+        });
+        toast.success('Pagina criada com sucesso!');
+        resetState();
+        onOpenChange(false);
+        navigate(`/page/${page.id}`);
+        return;
+      }
+
+      // Caminho Board (original)
       const board = await createBoard.mutateAsync({
         workspaceId,
         name: name.trim(),
         description: description.trim() || undefined,
       });
 
-      // 2. Aplicar template (grupos, colunas e itens de exemplo) se não for blank
+      // Aplicar template (grupos, colunas e itens de exemplo) se não for blank
       if (selectedTemplate.id !== 'blank') {
         const { data: authData } = await supabase.auth.getUser();
         const userId = authData.user?.id ?? '';
@@ -113,7 +145,7 @@ const CreateBoardModal: React.FC<Props> = ({ open, onOpenChange, workspaceId, pr
       onOpenChange(false);
       navigate(`/board/${board.id}`);
     } catch {
-      toast.error('Erro ao criar board');
+      toast.error(creationType === 'page' ? 'Erro ao criar pagina' : 'Erro ao criar board');
       setIsCreating(false);
     }
   };
@@ -121,16 +153,62 @@ const CreateBoardModal: React.FC<Props> = ({ open, onOpenChange, workspaceId, pr
   // Agrupar templates por categoria
   const categories = Array.from(new Set(allTemplates.map(t => t.category)));
 
+  const dialogTitle =
+    step === 'type-select'
+      ? 'Criar novo'
+      : step === 'template'
+        ? 'Escolha um Template'
+        : creationType === 'page'
+          ? 'Configurar Pagina'
+          : 'Configurar Board';
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="monday-h4 font-heading">
-            {step === 'template' ? 'Escolha um Template' : 'Configurar Board'}
+            {dialogTitle}
           </DialogTitle>
         </DialogHeader>
 
-        {step === 'template' ? (
+        {step === 'type-select' ? (
+          <>
+            <div className="space-y-3 py-2">
+              <p className="text-sm text-muted-foreground">
+                Escolha o que voce quer criar
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleSelectType('board')}
+                  className="p-4 rounded-lg border-2 border-border hover:border-primary/50 hover:bg-accent/50 transition-all text-left"
+                >
+                  <div className="text-2xl mb-2">📊</div>
+                  <div className="font-medium text-sm">Tarefas (Board)</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Tabela, Kanban, Calendario. Para gestao de itens e fluxos.
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectType('page')}
+                  className="p-4 rounded-lg border-2 border-border hover:border-primary/50 hover:bg-accent/50 transition-all text-left"
+                >
+                  <div className="text-2xl mb-2">📄</div>
+                  <div className="font-medium text-sm">Pagina (Doc)</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Documento estilo Notion. Para anotacoes, RFCs, runbooks.
+                  </div>
+                </button>
+              </div>
+            </div>
+            <DialogFooter className="pt-4 border-t">
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+                Cancelar
+              </Button>
+            </DialogFooter>
+          </>
+        ) : step === 'template' ? (
           <>
             <div className="flex-1 overflow-y-auto pr-1 -mr-1">
               {categories.map(category => {
@@ -175,8 +253,8 @@ const CreateBoardModal: React.FC<Props> = ({ open, onOpenChange, workspaceId, pr
               })}
             </div>
             <DialogFooter className="pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
-                Cancelar
+              <Button type="button" variant="outline" onClick={() => setStep('type-select')}>
+                Voltar
               </Button>
               <Button type="button" onClick={handleNext}>
                 Continuar
@@ -185,39 +263,49 @@ const CreateBoardModal: React.FC<Props> = ({ open, onOpenChange, workspaceId, pr
           </>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/50 border">
-              <span className="text-2xl">{selectedTemplate.icon}</span>
-              <div>
-                <div className="font-medium text-sm">{selectedTemplate.name}</div>
-                <div className="font-density-cell text-muted-foreground">{selectedTemplate.description}</div>
+            {creationType === 'board' && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/50 border">
+                <span className="text-2xl">{selectedTemplate.icon}</span>
+                <div>
+                  <div className="font-medium text-sm">{selectedTemplate.name}</div>
+                  <div className="font-density-cell text-muted-foreground">{selectedTemplate.description}</div>
+                </div>
               </div>
-            </div>
+            )}
             <div>
-              <Label htmlFor="board-name" className="monday-text2">Nome</Label>
+              <Label htmlFor="board-name" className="monday-text2">
+                {creationType === 'page' ? 'Titulo da pagina' : 'Nome'}
+              </Label>
               <Input
                 id="board-name"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="Meu Board"
+                placeholder={creationType === 'page' ? 'Minha pagina' : 'Meu Board'}
                 autoFocus
               />
             </div>
-            <div>
-              <Label htmlFor="board-desc" className="monday-text2">Descricao (opcional)</Label>
-              <Textarea
-                id="board-desc"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="Descreva este board..."
-                rows={2}
-              />
-            </div>
+            {creationType === 'board' && (
+              <div>
+                <Label htmlFor="board-desc" className="monday-text2">Descricao (opcional)</Label>
+                <Textarea
+                  id="board-desc"
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Descreva este board..."
+                  rows={2}
+                />
+              </div>
+            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={handleBack}>
                 Voltar
               </Button>
               <Button type="submit" disabled={!name.trim() || isCreating}>
-                {isCreating ? 'Criando...' : 'Criar Board'}
+                {isCreating
+                  ? 'Criando...'
+                  : creationType === 'page'
+                    ? 'Criar Pagina'
+                    : 'Criar Board'}
               </Button>
             </DialogFooter>
           </form>
