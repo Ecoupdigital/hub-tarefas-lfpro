@@ -175,6 +175,56 @@ export const useRenamePage = () => {
   });
 };
 
+/**
+ * Persiste conteudo BlockNote da pagina. Usado pelo auto-save debounced.
+ * NAO invalida ['pages'] (lista do sidebar) para evitar refetch a cada save.
+ */
+export const useUpdatePageContent = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: 1,
+    mutationFn: async ({
+      pageId,
+      content,
+    }: {
+      pageId: string;
+      content: unknown[];
+    }) => {
+      const { error } = await supabase
+        .from('pages')
+        .update({ content })
+        .eq('id', pageId);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['page', vars.pageId] });
+    },
+  });
+};
+
+/**
+ * Restaura page deletada (state='deleted' -> 'active').
+ * Invalida caches de listagem e trash.
+ */
+export const useRestorePage = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: 1,
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('pages')
+        .update({ state: 'active' })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pages'] });
+      qc.invalidateQueries({ queryKey: ['all-pages'] });
+      qc.invalidateQueries({ queryKey: ['trash-pages'] });
+    },
+  });
+};
+
 export const useCreateGroup = () => {
   const qc = useQueryClient();
   return useMutation({
