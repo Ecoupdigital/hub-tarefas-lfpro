@@ -13,7 +13,9 @@ import { lfproBlockNoteSchema } from './blocknote-schema';
 import { getCustomSlashMenuItems } from './slash-menu';
 import ItemPickerPopover from './blocks/ItemPickerPopover';
 import BoardPickerPopover from './blocks/BoardPickerPopover';
+import CreateDatabaseDialog from './CreateDatabaseDialog';
 import { usePageImageUpload } from './usePageImageUpload';
+import { usePage } from '@/hooks/useSupabaseData';
 
 // Imports de CSS obrigatorios do BlockNote.
 // Nao remover. Os overrides finos vivem em src/styles/blocknote-overrides.css.
@@ -71,6 +73,13 @@ const PageEditor: React.FC<PageEditorProps> = ({
   const { resolvedTheme } = useTheme();
   const [mentionOpen, setMentionOpen] = useState(false);
   const [embedBoardOpen, setEmbedBoardOpen] = useState(false);
+  const [databaseDialogOpen, setDatabaseDialogOpen] = useState(false);
+
+  // Lookup do workspace via pageId pra passar pro CreateDatabaseDialog.
+  // Quando pageId esta ausente (preview/uso fora da rota /page/:id), o item
+  // 'Database' do slash menu nao e exposto.
+  const { data: pageData } = usePage(pageId);
+  const workspaceId = pageData?.workspace_id ?? undefined;
 
   // Upload de imagem para o bucket `attachments`. Quando `pageId` esta ausente
   // (uso fora da rota /page/:id, como em previews), nao passamos uploadFile e
@@ -131,6 +140,8 @@ const PageEditor: React.FC<PageEditorProps> = ({
               getCustomSlashMenuItems(editor, {
                 onTriggerMention: () => setMentionOpen(true),
                 onTriggerEmbedBoard: () => setEmbedBoardOpen(true),
+                onTriggerDatabase:
+                  pageId && workspaceId ? () => setDatabaseDialogOpen(true) : undefined,
               }),
               query,
             )
@@ -172,6 +183,30 @@ const PageEditor: React.FC<PageEditorProps> = ({
           );
         }}
       />
+
+      {pageId && workspaceId && (
+        <CreateDatabaseDialog
+          open={databaseDialogOpen}
+          onOpenChange={setDatabaseDialogOpen}
+          workspaceId={workspaceId}
+          pageId={pageId}
+          onCreated={({ boardId, name }) => {
+            const cursor = editor.getTextCursorPosition();
+            // Cast pelo mesmo motivo do embed-board: o type 'database' vem do
+            // schema custom mas mantemos consumidores externos sem tipos pesados.
+            editor.insertBlocks(
+              [
+                {
+                  type: 'database',
+                  props: { boardId, snapshotName: name },
+                },
+              ] as unknown as PartialBlock[],
+              cursor.block,
+              'after',
+            );
+          }}
+        />
+      )}
     </div>
   );
 };
