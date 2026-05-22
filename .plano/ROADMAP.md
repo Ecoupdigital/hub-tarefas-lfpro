@@ -55,3 +55,26 @@ Fases executam em ordem numérica: 1
 |-------|----------------|--------|-----------|
 | 0. Hub de Tarefas | N/A | Existing | - |
 | 1. Páginas estilo Notion | 9/9 | Complete | 2026-05-22 |
+
+### Fase 2: Notion Database + Hierarquia + Blocos extras
+
+**Goal**: Pages podem conter subpáginas e databases inline (mini-boards com items/colunas próprios). Sidebar renderiza árvore expansível mostrando hierarquia completa (workspace > page > subpages/databases). Databases têm múltiplas views (Tabela, Kanban, Calendário, Lista detalhada estilo Notion). Blocos extras: bookmark (URL com preview card) e synced block (mesmo conteúdo em múltiplas pages).
+**Depends on**: Fase 1
+**Requirements**: [REQ-09, REQ-10, REQ-11, REQ-12, REQ-13, REQ-14, REQ-15, REQ-16, REQ-17, REQ-18, REQ-19, REQ-20]
+**Success Criteria** (what must be TRUE):
+  1. Page pode ter parent_id apontando pra outra page (subpáginas)
+  2. Sidebar lista pages como árvore expansível: workspace > page > subpages/databases
+  3. Drag/drop na árvore permite reordenar e reaninhar pages
+  4. Bloco "Database" no slash menu cria nova database vinculada à página atual
+  5. Database tem schema próprio: items, colunas (tipos: text, status, date, people, number, select, checkbox), views
+  6. Database aparece como filha da page no sidebar
+  7. View Tabela funciona (editar inline, adicionar coluna, adicionar item)
+  8. View Kanban funciona (drag items entre colunas de status)
+  9. View Calendário funciona (items posicionados por coluna date escolhida)
+  10. View Lista detalhada funciona (cada item ocupa linha grande com props empilhadas embaixo do nome — estilo Notion list view)
+  11. Trocar de view não perde estado (filtros/sort/group persistem por view)
+  12. Bloco "Bookmark" no slash menu: cola URL → fetch metadata (title, descrição, favicon, og:image) via Edge Function → renderiza card com preview clicável
+  13. Bloco "Synced Block" no slash menu: cria bloco que pode ser referenciado em outras pages; editar em um lugar reflete em todos
+  14. Permissões: databases herdam permissões da page pai. Subpáginas têm permissões próprias (espelham pages MVP)
+  15. Realtime sync: edições em databases/subpages refletem em outras abas
+**Plans**: TBD
