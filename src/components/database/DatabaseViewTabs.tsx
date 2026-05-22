@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Table2, Kanban, Calendar, List, Plus } from 'lucide-react';
 import { useBoardViews } from '@/hooks/useBoardViews';
 import CreateDatabaseViewDialog from './CreateDatabaseViewDialog';
+import ViewStyleToggle from './ViewStyleToggle';
 import type { DatabaseViewType } from '@/types/database';
 
 interface Props {
@@ -60,6 +61,10 @@ const DatabaseViewTabs: React.FC<Props> = ({ boardId, activeViewId, onChangeView
           </button>
         );
       })}
+      {/* Toggle de estilo visual da view ativa (Fase 03). Posicionado entre as
+          tabs e o botao "+ Nova view" conforme CONTEXT.md. So aparece quando ha
+          uma view ativa (ViewStyleToggle ja faz disabled internamente). */}
+      <ViewStyleToggle boardId={boardId} viewId={activeViewId} />
       <button
         type="button"
         onClick={() => setCreateOpen(true)}
