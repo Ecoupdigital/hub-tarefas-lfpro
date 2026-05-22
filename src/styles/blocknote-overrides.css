@@ -1,0 +1,71 @@
+/* LFPro overrides para BlockNote. Atua sobre a estrutura DOM do BlockNote/Mantine. */
+
+/* Container do editor herda a fonte do app (Jost) */
+.bn-container,
+.bn-editor,
+.bn-block-content,
+.bn-editor .ProseMirror {
+  font-family: "Jost", system-ui, -apple-system, sans-serif;
+  font-weight: 400;
+}
+
+/* Headings em Montserrat para destaque tipografico */
+.bn-block-content h1,
+.bn-block-content h2,
+.bn-block-content h3 {
+  font-family: "Montserrat", "Jost", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Slash menu hovered/selected — warm gold */
+.bn-suggestion-menu-item[aria-selected="true"],
+.bn-suggestion-menu-item:hover {
+  background: hsl(29 45% 71% / 0.12);
+}
+
+.dark .bn-suggestion-menu-item[aria-selected="true"],
+.dark .bn-suggestion-menu-item:hover {
+  background: hsl(29 50% 76% / 0.18);
+}
+
+/* Foco em blocos selecionados */
+.bn-block[data-selected="true"] {
+  outline: 2px solid hsl(29 45% 71% / 0.4);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.dark .bn-block[data-selected="true"] {
+  outline-color: hsl(29 50% 76% / 0.5);
+}
+
+/* Cursor warm gold */
+.bn-editor .ProseMirror-focused {
+  caret-color: hsl(29 45% 71%);
+}
+
+.dark .bn-editor .ProseMirror-focused {
+  caret-color: hsl(29 50% 76%);
+}
+
+/* Placeholder dos blocos vazios */
+.bn-block-content [data-placeholder]::before {
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+
+/* Container sem padding extra (controlado pelo wrapper do PageEditor) */
+.bn-container {
+  padding: 0;
+}
+
+/* Side menu (drag handle + add block) menos intrusivo, aparece em hover */
+.bn-side-menu {
+  opacity: 0.6;
+  transition: opacity 150ms ease;
+}
+
+.bn-block:hover .bn-side-menu {
+  opacity: 1;
+}
