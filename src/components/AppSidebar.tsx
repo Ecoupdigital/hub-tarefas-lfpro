@@ -17,9 +17,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { useQueryClient } from '@tanstack/react-query';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useProfiles, useWorkspaceEntries } from '@/hooks/useSupabaseData';
+import { useProfiles, useWorkspaceEntries, usePagesTree } from '@/hooks/useSupabaseData';
 import type { WorkspaceEntry } from '@/types/page';
-import PageSidebarItem from '@/components/PageSidebarItem';
+import PageTreeItem from '@/components/PageTreeItem';
 import { prefetchMyWorkItems } from '@/hooks/useMyWorkItems';
 import {
   useDeleteBoard, useToggleFavorite, useRenameBoard,
@@ -62,6 +62,37 @@ interface WorkspaceItemProps {
   otherWorkspaces?: Array<{ id: string; name: string }>;
   onMoveBoardToWorkspace?: (boardId: string, workspaceId: string) => void;
 }
+
+/**
+ * Renderiza a lista de pages root (parent_id IS NULL) de um workspace,
+ * cada uma como PageTreeItem recursivo. Lazy: a query so dispara quando
+ * `enabled = true` (workspace expandido).
+ *
+ * Substitui a lista plana anterior de pages (PageSidebarItem) por uma
+ * arvore expansivel. Databases inline aparecem como folhas dentro das pages
+ * (PageTreeItem cuida disso).
+ */
+const WorkspaceRootPages: React.FC<{
+  workspaceId: string;
+  expanded: boolean;
+  searchQuery?: string;
+}> = ({ workspaceId, expanded, searchQuery }) => {
+  const { data: rootPages = [] } = usePagesTree(workspaceId, null, expanded);
+  if (rootPages.length === 0) return null;
+  return (
+    <div className="density-space-y">
+      {rootPages.map((page) => (
+        <PageTreeItem
+          key={`page-${page.id}`}
+          node={page}
+          workspaceId={workspaceId}
+          level={0}
+          searchQuery={searchQuery}
+        />
+      ))}
+    </div>
+  );
+};
 
 const SortableWorkspaceItem = (props: WorkspaceItemProps & { id: string }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.id });
@@ -116,7 +147,7 @@ const WorkspaceItem = React.memo(({ workspace, sidebarSearch, activeBoardId, ite
   const deleteWorkspace = useDeleteWorkspace();
   const updateWsAppearance = useUpdateWorkspaceAppearance();
 
-  // Boards (props vem do AppContext) + Pages (query propria) — ambos por workspace
+  // Boards (props vem do AppContext) + Pages (query propria), ambos por workspace
   const { data: workspaceEntries = [] } = useWorkspaceEntries(workspace.id);
   const pageEntries: WorkspaceEntry[] = workspaceEntries.filter(
     (e): e is Extract<WorkspaceEntry, { kind: 'page' }> => e.kind === 'page'
@@ -243,22 +274,13 @@ const WorkspaceItem = React.memo(({ workspace, sidebarSearch, activeBoardId, ite
               otherWorkspaces={otherWorkspaces}
               onMoveBoardToWorkspace={onMoveBoardToWorkspace}
             />
-            {/* Pages do workspace (lista direta, sem folder no MVP) */}
-            {filteredPages.length > 0 && (
-              <div className="density-space-y">
-                {filteredPages.map((entry) => {
-                  if (entry.kind !== 'page') return null;
-                  return (
-                    <PageSidebarItem
-                      key={`page-${entry.id}`}
-                      pageId={entry.id}
-                      title={entry.title}
-                      icon={entry.icon}
-                    />
-                  );
-                })}
-              </div>
-            )}
+            {/* Arvore de pages root do workspace (lazy via usePagesTree).
+                PageTreeItem cuida recursivamente de subpages + databases inline. */}
+            <WorkspaceRootPages
+              workspaceId={workspace.id}
+              expanded={expanded}
+              searchQuery={searchQuery || sidebarSearch}
+            />
           </div>
         </div>
       </div>
