@@ -1,21 +1,32 @@
-import React, { useEffect, useMemo } from 'react';
-import { useCreateBlockNote } from '@blocknote/react';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  useCreateBlockNote,
+  SuggestionMenuController,
+} from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
-import type { Block, PartialBlock } from '@blocknote/core';
+import { filterSuggestionItems, type PartialBlock } from '@blocknote/core';
+import { pt as ptDictionary } from '@blocknote/core/locales';
 import { useTheme } from 'next-themes';
 
 import { lfproBlockNoteLightTheme, lfproBlockNoteDarkTheme } from './blocknote-theme';
+import { lfproBlockNoteSchema } from './blocknote-schema';
+import { getCustomSlashMenuItems } from './slash-menu';
+import ItemPickerPopover from './blocks/ItemPickerPopover';
 
 // Imports de CSS obrigatorios do BlockNote.
 // Nao remover. Os overrides finos vivem em src/styles/blocknote-overrides.css.
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
 
+// Tipo do array de blocos usado nas props publicas (mantemos generico para nao
+// vazar genericos pesados do BlockNote pros consumidores).
+export type PageEditorBlocks = PartialBlock[];
+
 export interface PageEditorProps {
   /** Conteudo inicial em formato BlockNote. Lido apenas na montagem. */
-  initialContent?: PartialBlock[];
+  initialContent?: PageEditorBlocks;
   /** Callback disparado a cada mudanca (debounce e responsabilidade do consumidor). */
-  onChange?: (blocks: Block[]) => void;
+  onChange?: (blocks: PageEditorBlocks) => void;
   /** Bloqueia edicao (leitura apenas). Default true. */
   editable?: boolean;
   /** className do container externo. */
@@ -23,15 +34,17 @@ export interface PageEditorProps {
 }
 
 /**
- * PageEditor — editor base BlockNote tematizado para LFPro.
+ * PageEditor — editor BlockNote tematizado para LFPro.
  *
  * Componente uncontrolled (segue API do BlockNote): `initialContent` so e lido na
  * primeira renderizacao. Para atualizar externamente use `editor.replaceBlocks`.
  *
  * Tema acompanha o tema global (light/dark) via next-themes.
  *
- * Conexao com plano 01-04: hook de auto-save chama `onChange` com debounce.
- * Conexao com plano 01-05: extensoes customizadas (mention/embed) entram aqui.
+ * Extensoes registradas:
+ *  - schema custom (mention-item inline content; embed-board planejado em 01-05b)
+ *  - slash menu pt-BR (dictionary pt + items LFPro adicionais)
+ *  - ItemPickerPopover acionado a partir do slash "Mencionar item"
  */
 const PageEditor: React.FC<PageEditorProps> = ({
   initialContent,
@@ -40,14 +53,20 @@ const PageEditor: React.FC<PageEditorProps> = ({
   className,
 }) => {
   const { resolvedTheme } = useTheme();
+  const [mentionOpen, setMentionOpen] = useState(false);
 
   const editor = useCreateBlockNote({
-    initialContent: initialContent && initialContent.length > 0 ? initialContent : undefined,
+    schema: lfproBlockNoteSchema,
+    dictionary: ptDictionary,
+    initialContent:
+      initialContent && initialContent.length > 0
+        ? (initialContent as unknown as PartialBlock[])
+        : undefined,
   });
 
   const theme = useMemo(
     () => (resolvedTheme === 'dark' ? lfproBlockNoteDarkTheme : lfproBlockNoteLightTheme),
-    [resolvedTheme]
+    [resolvedTheme],
   );
 
   // Atualiza editable dinamicamente.
@@ -61,10 +80,39 @@ const PageEditor: React.FC<PageEditorProps> = ({
         editor={editor}
         theme={theme}
         editable={editable}
+        slashMenu={false}
         onChange={() => {
           if (onChange) {
-            onChange(editor.document);
+            // editor.document e tipado com o schema custom; cast para PageEditorBlocks
+            // mantem a API publica do componente estavel.
+            onChange(editor.document as unknown as PageEditorBlocks);
           }
+        }}
+      >
+        <SuggestionMenuController
+          triggerCharacter="/"
+          getItems={async (query) =>
+            filterSuggestionItems(
+              getCustomSlashMenuItems(editor, {
+                onTriggerMention: () => setMentionOpen(true),
+              }),
+              query,
+            )
+          }
+        />
+      </BlockNoteView>
+
+      <ItemPickerPopover
+        open={mentionOpen}
+        onOpenChange={setMentionOpen}
+        onSelect={(item) => {
+          editor.insertInlineContent([
+            {
+              type: 'mention-item',
+              props: { itemId: item.id, snapshotName: item.name },
+            },
+            ' ',
+          ]);
         }}
       />
     </div>
