@@ -36,9 +36,9 @@ Hub colaborativo LFPro evolui de gestor de tarefas (boards + items) para platafo
 **Plans**: TBD
 
 Plans:
-- [ ] 01-01: Schema + RPCs Supabase (tabela `pages`, `page_versions`, RLS, RPC `can_access_page`, realtime)
-- [ ] 01-02: Integração BlockNote no projeto (instalar, tematizar com tokens LFPro, base do editor)
-- [ ] 01-03: Tipo "Página" no `CreateBoardModal` + sidebar mista (lista boards + pages)
+- [x] 01-01: Schema + RPCs Supabase (tabela `pages`, `page_versions`, RLS, RPC `can_access_page`, realtime)
+- [x] 01-02: Integração BlockNote no projeto (instalar, tematizar com tokens LFPro, base do editor)
+- [x] 01-03: Tipo "Página" no `CreateBoardModal` + sidebar mista (lista boards + pages)
 - [ ] 01-04: CRUD de página (criar, abrir, editar, auto-save debounced, soft delete, restore)
 - [ ] 01-05: Extensões customizadas BlockNote (mention de item, embed de board, slash items custom)
 - [ ] 01-06: Permissões de página (PagePermissionsPanel espelhando BoardPermissionsPanel)
@@ -53,4 +53,4 @@ Fases executam em ordem numérica: 1
 | Fase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Hub de Tarefas | N/A | Existing | - |
-| 1. Páginas estilo Notion | 0/8 | Not started | - |
+| 1. Páginas estilo Notion | 3/8 | In Progress | - |
