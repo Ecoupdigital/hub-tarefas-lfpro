@@ -2,7 +2,12 @@ import {
   getDefaultReactSlashMenuItems,
   type DefaultReactSuggestionItem,
 } from '@blocknote/react';
-import type { BlockNoteEditor } from '@blocknote/core';
+import type {
+  BlockNoteEditor,
+  BlockSchema,
+  InlineContentSchema,
+  StyleSchema,
+} from '@blocknote/core';
 
 /**
  * Handlers que o PageEditor injeta para abrir UIs custom
@@ -24,8 +29,12 @@ export interface SlashMenuHandlers {
  * filterSuggestionItems usa `title`, `aliases` e `subtext` para matching.
  * Por isso aliases incluem variacoes pt/en para usuarios que escapem padrao.
  */
-export function getCustomSlashMenuItems(
-  editor: BlockNoteEditor<any, any, any>,
+export function getCustomSlashMenuItems<
+  BSchema extends BlockSchema,
+  ISchema extends InlineContentSchema,
+  SSchema extends StyleSchema,
+>(
+  editor: BlockNoteEditor<BSchema, ISchema, SSchema>,
   handlers: SlashMenuHandlers,
 ): DefaultReactSuggestionItem[] {
   // BlockNote ja respeita o `dictionary` do editor, mapeando titles para pt-BR.
