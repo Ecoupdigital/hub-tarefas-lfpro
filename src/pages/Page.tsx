@@ -37,6 +37,17 @@ const PagePage: React.FC = () => {
   // APENAS se nao houver edicao local pendente. Sem isso, o usuario perderia
   // o que esta digitando agora.
   const lastUpdatedAtRef = useRef<string | null>(null);
+  // Timestamp do ultimo save local bem-sucedido. Quando a query invalida apos
+  // o nosso proprio save, o realtime + onSuccess da mutation disparam um echo
+  // que volta com updated_at novo. Sem cooldown, esse echo chama replaceBlocks
+  // e fecha menus abertos (slash, formatting toolbar) ou perde o cursor.
+  const lastLocalSaveAtRef = useRef<number>(0);
+  useEffect(() => {
+    if (autoSave.status === 'saved') {
+      lastLocalSaveAtRef.current = Date.now();
+    }
+  }, [autoSave.status]);
+
   useEffect(() => {
     if (!page) return;
     if (lastUpdatedAtRef.current === null) {
@@ -53,13 +64,28 @@ const PagePage: React.FC = () => {
       autoSave.status === 'idle' || autoSave.status === 'saved';
     if (!safeToReplace) return;
 
+    // Cooldown anti-echo: ignora updates que chegam dentro de 5s apos um save
+    // local. Isso suprime o proprio save voltando via realtime / refetch, que
+    // de outra forma chamaria replaceBlocks e fecharia menus abertos no editor.
+    if (Date.now() - lastLocalSaveAtRef.current < 5000) return;
+
     const editor = editorRef.current as {
       document: unknown[];
       replaceBlocks: (existing: unknown[], next: unknown[]) => void;
     } | null;
-    if (editor && Array.isArray(page.content)) {
-      editor.replaceBlocks(editor.document, page.content as unknown[]);
+    if (!editor || !Array.isArray(page.content)) return;
+
+    // Comparacao estrutural defensiva: se o content remoto e identico ao local,
+    // pular replaceBlocks (evita reset de cursor/menu mesmo fora do cooldown).
+    try {
+      const localJson = JSON.stringify(editor.document);
+      const remoteJson = JSON.stringify(page.content);
+      if (localJson === remoteJson) return;
+    } catch {
+      // Se serializacao falha, segue pro replace (comportamento conservador).
     }
+
+    editor.replaceBlocks(editor.document, page.content as unknown[]);
   }, [page, autoSave.status]);
 
   if (!pageId) {
