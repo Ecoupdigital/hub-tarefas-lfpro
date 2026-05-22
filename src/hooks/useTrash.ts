@@ -126,6 +126,38 @@ export const usePermanentDeleteItem = () => {
   });
 };
 
+// ---- Page Trash ----
+
+export const useDeletedPages = () =>
+  useQuery({
+    queryKey: ['trash-pages'],
+    staleTime: 30 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pages')
+        .select('id, workspace_id, title, icon, updated_at')
+        .eq('state', 'deleted')
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+export const usePermanentDeletePage = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('pages').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['trash-pages'] });
+      qc.invalidateQueries({ queryKey: ['all-pages'] });
+      qc.invalidateQueries({ queryKey: ['pages'] });
+    },
+  });
+};
+
 export const useEmptyTrash = () => {
   const qc = useQueryClient();
   return useMutation({
