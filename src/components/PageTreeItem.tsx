@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ChevronDown, ChevronRight, FileText, MoreHorizontal,
-  Pencil, Trash2, Plus,
+  Pencil, Trash2, Plus, GripVertical,
 } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { useDroppable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger, DropdownMenuSeparator,
@@ -77,6 +80,41 @@ const PageTreeItem: React.FC<PageTreeItemProps> = ({
   // Quando expandido, propagamos searchQuery pra filhos seguirem mesma regra.
   const matchesSearch = !searchQuery || node.title.toLowerCase().includes(searchQuery.toLowerCase());
 
+  // dnd-kit: sortable pra mover entre irmaos
+  const sortableId = `page-${node.id}`;
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setSortableRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: sortableId,
+    data: {
+      type: 'page',
+      pageId: node.id,
+      parentId: node.parent_id,
+      workspaceId,
+    },
+  });
+
+  // Drop zone "dentro" do node: drop aqui = vira filho desta page
+  const { setNodeRef: setDropInsideRef, isOver: isOverInside } = useDroppable({
+    id: `page-${node.id}-inside`,
+    data: {
+      type: 'page-inside',
+      parentPageId: node.id,
+      workspaceId,
+    },
+  });
+
+  const sortableStyle: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
   const handleRename = async () => {
     const next = renameValue.trim();
     if (!next || next === node.title) {
@@ -118,11 +156,23 @@ const PageTreeItem: React.FC<PageTreeItemProps> = ({
   }
 
   return (
-    <>
+    <div ref={setSortableRef} style={sortableStyle}>
       <div
-        className="flex items-center group/page"
+        ref={setDropInsideRef}
+        className={`flex items-center group/page rounded-md transition-colors ${
+          isOverInside && !isDragging ? 'bg-primary/10 ring-1 ring-primary' : ''
+        }`}
         style={{ paddingLeft: `${level * 16}px` }}
       >
+        <button
+          {...attributes}
+          {...listeners}
+          className="p-0.5 rounded text-muted-foreground hover:bg-sidebar-accent opacity-0 group-hover/page:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+          aria-label="Arrastar pagina"
+          onClick={(e) => e.preventDefault()}
+        >
+          <GripVertical className="w-3 h-3" />
+        </button>
         {hasChildren ? (
           <button
             onClick={() => setExpanded(!expanded)}
@@ -236,7 +286,7 @@ const PageTreeItem: React.FC<PageTreeItemProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 };
 
