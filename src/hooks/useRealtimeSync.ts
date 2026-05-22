@@ -43,15 +43,31 @@ export const useRealtimeSync = () => {
           }, 2_000);
         }
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'boards' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'boards' }, (payload) => {
         qc.invalidateQueries({ queryKey: ['boards'] });
+        // Database inline (boards.page_id NOT NULL) afeta arvore do sidebar:
+        // muda count de filhos da page parente + lista de databases ancoradas.
+        const pageId = (payload.new as any)?.page_id ?? (payload.old as any)?.page_id;
+        if (pageId) {
+          qc.invalidateQueries({ queryKey: ['databases-for-page', pageId] });
+          // child_count da page pode ter mudado em qualquer nivel da arvore
+          qc.invalidateQueries({ queryKey: ['pages-tree'] });
+        }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pages' }, (payload) => {
         const pageId = (payload.new as any)?.id || (payload.old as any)?.id;
+        const parentId = (payload.new as any)?.parent_id ?? (payload.old as any)?.parent_id ?? null;
+        const workspaceId =
+          (payload.new as any)?.workspace_id || (payload.old as any)?.workspace_id;
         qc.invalidateQueries({ queryKey: ['pages'] });
         qc.invalidateQueries({ queryKey: ['all-pages'] });
         if (pageId) {
           qc.invalidateQueries({ queryKey: ['page', pageId] });
+        }
+        // Invalida arvore no nivel afetado + root (child_count do pai muda)
+        if (workspaceId) {
+          qc.invalidateQueries({ queryKey: ['pages-tree', workspaceId, parentId] });
+          qc.invalidateQueries({ queryKey: ['pages-tree', workspaceId, null] });
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'page_versions' }, (payload) => {
