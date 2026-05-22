@@ -109,8 +109,8 @@ Fases executam em ordem numérica: 1
   9. Estilo LFPro continua funcionando (variantes não se quebram entre si)
 **Plans**:
 - [x] 03-01: Foundation (tipos ViewStyle + paleta CSS Notion + hook useViewStyle)
-- [ ] 03-02: Toggle UI no header da view + DatabaseViewRenderer wrap
-- [ ] 03-03: NotionTableView
+- [x] 03-02: Toggle UI no header da view + DatabaseViewRenderer wrap
+- [x] 03-03: NotionTableView
 - [ ] 03-03b: NotionTableView refinements
 - [ ] 03-04: NotionKanbanView
 - [ ] 03-05: NotionCalendarView
