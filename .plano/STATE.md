@@ -44,6 +44,11 @@ phases_in_progress: [03]
 - **03-03b:** Effect-sync no `localName` (useEffect com dep item.name) — mantem nome sincronizado em caso de update externo via Realtime.
 - **03-03b:** `useCreateItem` com `onSuccess` callback inline — mais simples que useEffect com `isPending`, sem race conditions.
 - **03-03b:** Group header so renderiza quando `groups.length > 1` — evita cabecalho "Itens" redundante em boards single-group.
+- **03-05:** `weekStartsOn: 0` (domingo) em vez de locale ptBR (segunda) — alinha com header `WEEKDAY_LABELS` que comeca em domingo; locale ptBR usado so em `format()`.
+- **03-05:** MVP sem drag-and-drop de eventos entre dias — click do evento abre `ItemDetailPanel`; drag fica para plano futuro.
+- **03-05:** Cap de 3 eventos por day cell no modo mes + "+N mais"; modo semana sem cap (cells altas com scroll).
+- **03-05:** `view.config.calendarDateColumnId` / `calendarStatusColumnId` com precedencia + validacao defensiva (cai pro default se coluna nao existe mais ou trocou de tipo).
+- **03-05:** `parseDateValue` aceita string `"YYYY-MM-DD"` OU objeto `{ date }` — elimina necessidade de migration de dados legacy.
 - **03-06:** NotionListRow renderizado como `<button>` nativo (nao `<div onClick>`) — acessibilidade gratuita (focus, Enter/Space, aria-label).
 - **03-06:** Layout horizontal com flex-wrap e max-w-[60%] na area de chips — permite quebra defensiva sem dominar o nome.
 - **03-06:** visibleProps lido via `useBoardViews` + lookup por `view_type === 'list_detailed'` — mesma fonte que DatabaseListView LFPro (consistencia com 02-08).
@@ -60,4 +65,5 @@ phases_in_progress: [03]
 - **03-02:** 269s, 7 tarefas (6 auto + 1 human-verify), 6 arquivos criados, 2 modificados, 0 testes novos, 6 commits
 - **03-03:** 86s, 2 tarefas, 2 arquivos criados, 0 modificados, 0 testes, 2 commits
 - **03-03b:** 111s, 4 tarefas (3 auto + 1 human-verify auto-PASS), 2 arquivos criados, 1 modificado, 0 testes novos, 3 commits
+- **03-05:** 134s, 6 tarefas (5 auto + 1 human-verify auto-PASS), 4 arquivos criados, 1 modificado, 0 testes novos, 5 commits
 - **03-06:** 97s, 3 tarefas (2 auto + 1 human-verify auto-PASS), 1 arquivo criado, 1 modificado, 0 testes novos, 2 commits
