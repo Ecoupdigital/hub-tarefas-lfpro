@@ -38,10 +38,22 @@ export const useBoard = () => {
   return ctx;
 };
 
-export const BoardProvider = ({ children }: { children: ReactNode }) => {
+interface BoardProviderProps {
+  children: ReactNode;
+  /**
+   * Quando definido, sobrescreve `activeBoardId` do UIContext para este provider.
+   * Usado por `DatabaseBoardContext` (Fase 02-06) pra renderizar BoardTable/Kanban/Calendar
+   * apontando para o board da database inline sem alterar o board ativo do app principal.
+   * Tambem desabilita o onboarding automatico (so o BoardProvider "real" do app cria board inicial).
+   */
+  boardIdOverride?: string;
+}
+
+export const BoardProvider = ({ children, boardIdOverride }: BoardProviderProps) => {
   const {
-    activeBoardId, setActiveBoardId, activeWorkspaceId, setActiveWorkspaceId, setSelectedItem,
+    activeBoardId: uiBoardId, setActiveBoardId, activeWorkspaceId, setActiveWorkspaceId, setSelectedItem,
   } = useUI();
+  const activeBoardId = boardIdOverride ?? uiBoardId;
   const {
     searchQuery, advancedFilter, sort, hiddenColumns, resetAll,
   } = useFilter();
@@ -85,6 +97,9 @@ export const BoardProvider = ({ children }: { children: ReactNode }) => {
   //      create board, group, columns only (partial onboarding recovery)
   const onboardingDone = useRef(false);
   useEffect(() => {
+    // Pula onboarding em BoardProviders aninhados (database inline) — so o BoardProvider
+    // raiz do app deve criar workspace/board iniciais.
+    if (boardIdOverride) return;
     if (onboardingDone.current || wsLoading || boardsLoading || !user) return;
     // Scenario A: no workspace at all — full onboarding
     if (dbWorkspaces.length === 0) {
@@ -125,14 +140,16 @@ export const BoardProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [wsLoading, boardsLoading, user, dbWorkspaces.length, dbBoards.length]);
 
-  // Sync workspace when board changes
+  // Sync workspace when board changes (apenas no BoardProvider raiz; em databases inline,
+  // nao queremos sobrescrever o activeWorkspaceId do app)
   useEffect(() => {
+    if (boardIdOverride) return;
     if (!activeBoardId) return;
     const board = dbBoards.find(b => b.id === activeBoardId);
     if (board && board.workspace_id !== activeWorkspaceId) {
       setActiveWorkspaceId(board.workspace_id);
     }
-  }, [activeBoardId, dbBoards, activeWorkspaceId]);
+  }, [activeBoardId, dbBoards, activeWorkspaceId, boardIdOverride]);
 
   const workspaces = useMemo(() =>
     dbWorkspaces.map(ws => ({
