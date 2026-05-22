@@ -5,6 +5,7 @@ import { buildItemsQuery, ITEMS_PAGE_SIZE } from '@/utils/filterToPostgrest';
 import type { BoardSort } from '@/context/AppContext';
 import { UndoRedoContext } from '@/context/UndoRedoContext';
 import { executeAutomations } from './useAutomationEngine';
+import type { PageTreeNode } from '@/types/page';
 
 // ---- Profiles ----
 export const useProfiles = () =>
@@ -155,6 +156,107 @@ export const useWorkspaceEntries = (workspaceId?: string) => {
   ].sort((a, b) => a.position - b.position);
   return { data, isLoading };
 };
+
+// ---- Pages Tree (Fase 02) ----
+
+/**
+ * Retorna filhos diretos de um no da arvore de pages (pages com parent_id = parentId).
+ * Quando parentId e null, retorna pages raiz do workspace (parent_id IS NULL).
+ *
+ * Carrega `child_count` por agregacao em memoria (subpages + databases ancoradas),
+ * permitindo renderizar chevron expand/collapse sem fetch redundante de filhos.
+ *
+ * Ordenacao por sort_order (lexorank ASC).
+ *
+ * Lazy: a query so executa quando `enabled = true`. O consumer (PageTreeItem) controla
+ * isso via estado expandido pra evitar carregar a arvore inteira de uma vez.
+ */
+export const usePagesTree = (
+  workspaceId: string | null | undefined,
+  parentId: string | null,
+  enabled: boolean = true,
+) =>
+  useQuery({
+    queryKey: ['pages-tree', workspaceId, parentId],
+    enabled: !!workspaceId && enabled,
+    staleTime: 2 * 60 * 1000,
+    queryFn: async (): Promise<PageTreeNode[]> => {
+      // Query principal: pages filhos diretos do parentId no workspace
+      let q = supabase
+        .from('pages')
+        .select('id, workspace_id, parent_id, title, icon, sort_order')
+        .eq('workspace_id', workspaceId!)
+        .eq('state', 'active');
+      q = parentId === null ? q.is('parent_id', null) : q.eq('parent_id', parentId);
+      const { data: pages, error } = await q.order('sort_order');
+      if (error) throw error;
+      if (!pages || pages.length === 0) return [];
+
+      const pageIds = pages.map((p) => p.id);
+
+      // Subquery 1: subpages por parent_id (pra contar filhos pages)
+      const { data: subpageRows } = await supabase
+        .from('pages')
+        .select('parent_id')
+        .in('parent_id', pageIds)
+        .eq('state', 'active');
+
+      // Subquery 2: databases (boards com page_id) por page_id (pra contar filhos databases)
+      const { data: databaseRows } = await supabase
+        .from('boards')
+        .select('page_id')
+        .in('page_id', pageIds)
+        .eq('state', 'active');
+
+      // Agrega contagens em memoria (datasets pequenos por nivel)
+      const childCount: Record<string, number> = {};
+      for (const row of subpageRows ?? []) {
+        const pid = (row as { parent_id: string | null }).parent_id;
+        if (pid) childCount[pid] = (childCount[pid] ?? 0) + 1;
+      }
+      for (const row of databaseRows ?? []) {
+        const pid = (row as { page_id: string | null }).page_id;
+        if (pid) childCount[pid] = (childCount[pid] ?? 0) + 1;
+      }
+
+      return pages.map<PageTreeNode>((p) => ({
+        id: p.id,
+        workspace_id: p.workspace_id!,
+        parent_id: p.parent_id ?? null,
+        title: p.title,
+        icon: p.icon,
+        sort_order: p.sort_order ?? 'a0',
+        child_count: childCount[p.id] ?? 0,
+      }));
+    },
+  });
+
+/**
+ * Retorna boards que sao databases inline ancoradas em uma page (boards.page_id = pageId).
+ * Usado pelo PageTreeItem pra listar databases como filhos da page no sidebar.
+ *
+ * Lazy: idem `usePagesTree`. Habilitado quando o no esta expandido.
+ */
+export const useDatabasesForPage = (
+  pageId: string | null | undefined,
+  enabled: boolean = true,
+) =>
+  useQuery({
+    queryKey: ['databases-for-page', pageId],
+    enabled: !!pageId && enabled,
+    staleTime: 2 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('boards')
+        .select('id, name, icon, color, page_id, workspace_id, position, created_at')
+        .eq('page_id', pageId!)
+        .eq('state', 'active')
+        .order('position')
+        .order('created_at');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
 // ---- Groups ----
 export const useGroups = (boardId?: string | null) =>
