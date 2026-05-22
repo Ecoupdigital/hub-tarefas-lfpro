@@ -1,23 +1,28 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createReactBlockSpec } from '@blocknote/react';
 import { Database } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DatabaseViewTabs from '@/components/database/DatabaseViewTabs';
 import DatabaseViewRenderer from '@/components/database/DatabaseViewRenderer';
+import { useBoardViews } from '@/hooks/useBoardViews';
 
 /**
  * Bloco custom BlockNote 'database' - database inline ancorada na page.
  *
- * Render (MVP / stub):
+ * Render:
  *  - Header com icone Database + nome do board (snapshotName) + clique abre
  *    em tela cheia via navigate(/board/:id)
- *  - DatabaseViewTabs (stub - implementacao em 02-08)
- *  - DatabaseViewRenderer (stub - implementacao em 02-06/07)
+ *  - DatabaseViewTabs (lista board_views; tab ativa = activeViewId local)
+ *  - DatabaseViewRenderer (renderiza Table/Kanban/Calendar/ListDetailed conforme view)
  *
  * Props serializadas no JSON do documento BlockNote:
  *  - boardId: id do board (boards.page_id IS NOT NULL) referenciado por este bloco
  *  - snapshotName: nome do board no momento do insert (fallback caso o board seja
  *    deletado ou inacessivel; tambem evita query extra so pra header)
+ *
+ * Persistencia da view ativa: `localStorage[lfpro-database-active-view-${boardId}]`.
+ * Quando o ID guardado nao existe mais (view foi deletada externamente), faz
+ * fallback pra `is_default` ou primeira view e atualiza o storage.
  *
  * content: 'none' garante que o bloco e atomico (sem texto editavel dentro).
  * contentEditable={false} no wrapper impede ProseMirror de tratar o DOM interno
@@ -50,6 +55,47 @@ const DatabaseBlockView: React.FC<{ boardId: string; snapshotName: string }> = (
   snapshotName,
 }) => {
   const navigate = useNavigate();
+  const { data: views = [] } = useBoardViews(boardId || null);
+
+  // activeViewId persiste por boardId em localStorage. Lazy-init le do storage
+  // ao montar; demais updates passam por setActiveViewId que tambem persiste.
+  const storageKey = `lfpro-database-active-view-${boardId}`;
+  const [activeViewId, setActiveViewIdState] = useState<string | null>(() => {
+    if (!boardId) return null;
+    try {
+      return localStorage.getItem(storageKey);
+    } catch {
+      return null;
+    }
+  });
+
+  const setActiveViewId = (id: string) => {
+    setActiveViewIdState(id);
+    try {
+      localStorage.setItem(storageKey, id);
+    } catch {
+      // localStorage indisponivel (modo privado, quota): ignora silencioso, estado em memoria continua valido
+    }
+  };
+
+  // Reconciliacao com views carregadas. Se a view persistida nao existe mais
+  // (ou nunca foi escolhida), fallback pra is_default > primeira view.
+  useEffect(() => {
+    if (views.length === 0) return;
+    const exists = activeViewId && views.some((v) => v.id === activeViewId);
+    if (!exists) {
+      const def = views.find((v) => v.is_default) ?? views[0];
+      if (def) {
+        setActiveViewIdState(def.id);
+        try {
+          localStorage.setItem(storageKey, def.id);
+        } catch {
+          // ignore
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [views, activeViewId, storageKey]);
 
   if (!boardId) {
     return (
@@ -78,8 +124,12 @@ const DatabaseBlockView: React.FC<{ boardId: string; snapshotName: string }> = (
           {snapshotName || 'Database'}
         </button>
       </div>
-      <DatabaseViewTabs boardId={boardId} />
-      <DatabaseViewRenderer boardId={boardId} />
+      <DatabaseViewTabs
+        boardId={boardId}
+        activeViewId={activeViewId}
+        onChangeView={setActiveViewId}
+      />
+      <DatabaseViewRenderer boardId={boardId} activeViewId={activeViewId} />
     </div>
   );
 };
