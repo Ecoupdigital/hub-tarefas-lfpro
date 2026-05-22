@@ -83,10 +83,10 @@ Fases executam em ordem numérica: 1
 - [x] 02-02: Sidebar tree expansivel (usePagesTree + PageTreeItem + DatabaseSidebarItem)
 - [x] 02-03: Drag/drop na arvore com lexorank (`useReorderPage` + dnd-kit)
 - [x] 02-04: Subpages CRUD + breadcrumb + cascade delete (RPC `soft_delete_page_cascade`)
-- [ ] 02-05: View Kanban em modo database
-- [ ] 02-06: View Calendário em modo database
-- [ ] 02-07: View Lista detalhada (`DatabaseListView` novo)
-- [ ] 02-08: Bloco Bookmark + Edge Function `fetch-url-metadata`
-- [ ] 02-09: Bloco Synced + hook `useSyncedBlock`
-- [ ] 02-10: Subpáginas (criar/mover/deletar com cascade UX)
-- [ ] 02-11: Realtime sync da árvore + canais `synced_blocks`/`pages` parent_id
+- [x] 02-05: Bloco Database no BlockNote (criacao via slash menu + render inline com stubs)
+- [x] 02-06: Views Tabela/Kanban/Calendar com mode='database' + DatabaseBoardContext + filtro 8 tipos
+- [ ] 02-07: `DatabaseListView` (Notion list view real)
+- [ ] 02-08: `DatabaseViewTabs` + persistencia de view ativa
+- [x] 02-09: Edge Function `fetch-url-metadata` + Bloco Bookmark
+- [x] 02-10: Bloco Synced (synced_blocks)
+- [ ] 02-11: Permissoes + Realtime de synced_blocks (fechamento)
