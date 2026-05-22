@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Trash2, RotateCcw, Search, AlertTriangle, LayoutDashboard, Archive } from 'lucide-react';
+import { Trash2, RotateCcw, Search, AlertTriangle, LayoutDashboard, Archive, FileText } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useTrashItems, useRestoreItem, usePermanentDeleteItem, useEmptyTrash, useTrashBoards, useArchivedBoards, useRestoreBoard, usePermanentDeleteBoard } from '@/hooks/useTrash';
+import { useTrashItems, useRestoreItem, usePermanentDeleteItem, useEmptyTrash, useTrashBoards, useArchivedBoards, useRestoreBoard, usePermanentDeleteBoard, useDeletedPages, usePermanentDeletePage } from '@/hooks/useTrash';
+import { useRestorePage } from '@/hooks/useCrudMutations';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -15,21 +16,25 @@ interface TrashDrawerProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type ActiveTab = 'items' | 'boards' | 'archived';
+type ActiveTab = 'items' | 'boards' | 'pages' | 'archived';
 
 const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onOpenChange }) => {
   const { data: trashItems = [], isLoading } = useTrashItems();
   const { data: trashBoards = [], isLoading: boardsLoading } = useTrashBoards();
   const { data: archivedBoards = [], isLoading: archivedLoading } = useArchivedBoards();
+  const { data: trashPages = [], isLoading: pagesLoading } = useDeletedPages();
   const restoreItem = useRestoreItem();
   const permanentDelete = usePermanentDeleteItem();
   const emptyTrash = useEmptyTrash();
   const restoreBoard = useRestoreBoard();
   const permanentDeleteBoard = usePermanentDeleteBoard();
+  const restorePage = useRestorePage();
+  const permanentDeletePage = usePermanentDeletePage();
 
   const [search, setSearch] = useState('');
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [boardToDelete, setBoardToDelete] = useState<string | null>(null);
+  const [pageToDelete, setPageToDelete] = useState<string | null>(null);
   const [showEmptyConfirm, setShowEmptyConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>('items');
 
@@ -50,6 +55,12 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onOpenChange }) => {
         b.name.toLowerCase().includes(search.toLowerCase())
       )
     : archivedBoards;
+
+  const filteredPages = search.trim()
+    ? trashPages.filter((p: any) =>
+        (p.title ?? '').toLowerCase().includes(search.toLowerCase())
+      )
+    : trashPages;
 
   const handleRestore = async (id: string) => {
     try {
@@ -91,6 +102,26 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onOpenChange }) => {
     }
   };
 
+  const handleRestorePage = async (id: string) => {
+    try {
+      await restorePage.mutateAsync(id);
+      toast.success('Pagina restaurada');
+    } catch {
+      toast.error('Erro ao restaurar pagina');
+    }
+  };
+
+  const handlePermanentDeletePage = async () => {
+    if (!pageToDelete) return;
+    try {
+      await permanentDeletePage.mutateAsync(pageToDelete);
+      toast.success('Pagina excluida permanentemente');
+      setPageToDelete(null);
+    } catch {
+      toast.error('Erro ao excluir pagina');
+    }
+  };
+
   const handleEmptyTrash = async () => {
     try {
       await emptyTrash.mutateAsync();
@@ -101,9 +132,21 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onOpenChange }) => {
     }
   };
 
-  const tabLoadingState = activeTab === 'items' ? isLoading : activeTab === 'boards' ? boardsLoading : archivedLoading;
-  const currentList = activeTab === 'items' ? filtered : activeTab === 'boards' ? filteredBoards : filteredArchived;
-  const emptyLabel = activeTab === 'items' ? 'A lixeira esta vazia' : activeTab === 'boards' ? 'Nenhum board na lixeira' : 'Nenhum board arquivado';
+  const tabLoadingState =
+    activeTab === 'items' ? isLoading
+    : activeTab === 'boards' ? boardsLoading
+    : activeTab === 'pages' ? pagesLoading
+    : archivedLoading;
+  const currentList =
+    activeTab === 'items' ? filtered
+    : activeTab === 'boards' ? filteredBoards
+    : activeTab === 'pages' ? filteredPages
+    : filteredArchived;
+  const emptyLabel =
+    activeTab === 'items' ? 'A lixeira esta vazia'
+    : activeTab === 'boards' ? 'Nenhum board na lixeira'
+    : activeTab === 'pages' ? 'Nenhuma pagina na lixeira'
+    : 'Nenhum board arquivado';
 
   return (
     <>
@@ -131,6 +174,7 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onOpenChange }) => {
             {([
               { key: 'items', label: 'Itens', icon: Trash2, count: trashItems.length },
               { key: 'boards', label: 'Boards', icon: LayoutDashboard, count: trashBoards.length },
+              { key: 'pages', label: 'Paginas', icon: FileText, count: trashPages.length },
               { key: 'archived', label: 'Arquivados', icon: Archive, count: archivedBoards.length },
             ] as const).map(({ key, label, icon: Icon, count }) => (
               <button
@@ -185,6 +229,51 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onOpenChange }) => {
                 <p className="font-density-cell">
                   {search.trim() ? 'Nenhum resultado encontrado' : emptyLabel}
                 </p>
+              </div>
+            ) : activeTab === 'pages' ? (
+              <div className="space-y-1">
+                {filteredPages.map((page: any) => (
+                  <div
+                    key={page.id}
+                    className="flex items-center justify-between p-2.5 rounded-md hover:bg-muted/50 transition-colors group"
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0 mr-2">
+                      {page.icon ? (
+                        <span className="text-base leading-none flex-shrink-0">{page.icon}</span>
+                      ) : (
+                        <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-density-cell font-medium text-foreground truncate">
+                          {page.title || 'Pagina sem titulo'}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="font-density-tiny text-muted-foreground">
+                            {page.updated_at
+                              ? formatDistanceToNow(new Date(page.updated_at), { addSuffix: true, locale: ptBR })
+                              : ''}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleRestorePage(page.id)}
+                        className="p-1.5 rounded hover:bg-primary/10 text-primary transition-colors"
+                        title="Restaurar pagina"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setPageToDelete(page.id)}
+                        className="p-1.5 rounded hover:bg-destructive/10 text-destructive transition-colors"
+                        title="Excluir permanentemente"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : activeTab === 'items' ? (
               <div className="space-y-1">
@@ -304,6 +393,26 @@ const TrashDrawer: React.FC<TrashDrawerProps> = ({ open, onOpenChange }) => {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handlePermanentDeleteBoard}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!pageToDelete} onOpenChange={() => setPageToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir pagina permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta pagina e todo o seu conteudo serao excluidos permanentemente e nao poderao ser recuperados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handlePermanentDeletePage}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir permanentemente
