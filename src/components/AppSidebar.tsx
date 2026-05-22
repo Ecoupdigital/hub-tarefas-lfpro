@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
-  type DragEndEvent,
+  DragOverlay, type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
@@ -18,13 +18,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfiles, useWorkspaceEntries, usePagesTree } from '@/hooks/useSupabaseData';
-import type { WorkspaceEntry } from '@/types/page';
+import { keyBetween } from '@/utils/lexorank';
+import type { WorkspaceEntry, PageTreeNode } from '@/types/page';
 import PageTreeItem from '@/components/PageTreeItem';
 import { prefetchMyWorkItems } from '@/hooks/useMyWorkItems';
 import {
   useDeleteBoard, useToggleFavorite, useRenameBoard,
   useRenameWorkspace, useDeleteWorkspace, useUpdateWorkspaceAppearance,
   useUpdateBoardAppearance, useFavorites, useMoveBoardToWorkspace,
+  useCreatePage, useReorderPage,
 } from '@/hooks/useCrudMutations';
 import DuplicateBoardDialog from '@/components/board/DuplicateBoardDialog';
 import { useRecentBoards } from '@/hooks/useRecentBoards';
@@ -370,6 +372,34 @@ const SidebarContent = () => {
   const toggleFavorite = useToggleFavorite();
   const updateBoardAppearance = useUpdateBoardAppearance();
   const moveBoardToWorkspace = useMoveBoardToWorkspace();
+  const createPage = useCreatePage();
+
+  // Listener global: PageTreeItem dispara CustomEvent 'lfpro-create-subpage'
+  // (vide dropdown "Nova subpagina"). Cria subpagina com parent_id e navega
+  // para a nova page. Centralizado no Sidebar pra reusar useCreatePage uma vez
+  // ao inves de em cada item da arvore.
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const detail = (e as CustomEvent).detail as
+        | { workspaceId?: string; parentId?: string }
+        | undefined;
+      if (!detail?.workspaceId || !detail?.parentId) return;
+      try {
+        const created = await createPage.mutateAsync({
+          workspaceId: detail.workspaceId,
+          title: 'Nova subpagina',
+          parentId: detail.parentId,
+        });
+        toast.success('Subpagina criada');
+        navigate(`/page/${created.id}`);
+      } catch (err) {
+        console.error('lfpro-create-subpage handler', err);
+        toast.error('Erro ao criar subpagina');
+      }
+    };
+    window.addEventListener('lfpro-create-subpage', handler);
+    return () => window.removeEventListener('lfpro-create-subpage', handler);
+  }, [createPage, navigate]);
 
   // Drag & drop workspace order
   const [workspaceOrder, setWorkspaceOrder] = useState<string[]>(() => {
