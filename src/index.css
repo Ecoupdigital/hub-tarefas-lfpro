@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @import "./styles/blocknote-overrides.css";
+@import "./styles/notion-theme.css";
 
 @layer base {
   :root {
