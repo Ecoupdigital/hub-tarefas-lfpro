@@ -1,20 +1,33 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { usePage } from '@/hooks/useSupabaseData';
 import { useCanEditPage } from '@/hooks/usePagePermissions';
 import PageEditor from '@/components/page/PageEditor';
 import PageHeader from '@/components/page/PageHeader';
 import PagePermissionsPanel from '@/components/page/PagePermissionsPanel';
+import PageVersionsPanel from '@/components/page/PageVersionsPanel';
 import { usePageAutoSave } from '@/components/page/usePageAutoSave';
 import LoadingScreen from '@/components/shared/LoadingScreen';
 import type { PartialBlock } from '@blocknote/core';
+import type { Page } from '@/types/page';
 
 const PagePage: React.FC = () => {
   const { pageId } = useParams<{ pageId: string }>();
   const { data: page, isLoading, error } = usePage(pageId);
-  const autoSave = usePageAutoSave({ pageId: pageId ?? '' });
+  // Ref pro editor BlockNote, populada pelo PageEditor. Permite restore de versao
+  // chamar editor.replaceBlocks sem reload.
+  const editorRef = useRef<unknown>(null);
+  // Ref pro titulo corrente, lida pelo usePageAutoSave quando snapshot e disparado.
+  const currentTitleRef = useRef<string>('');
+  if (page) currentTitleRef.current = page.title;
+
+  const autoSave = usePageAutoSave({
+    pageId: pageId ?? '',
+    getCurrentTitle: () => currentTitleRef.current,
+  });
   const canEdit = useCanEditPage(pageId ?? null);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   if (!pageId) {
     return <Navigate to="/" replace />;
@@ -48,12 +61,25 @@ const PagePage: React.FC = () => {
 
   const initialContent = (page.content as PartialBlock[] | null) ?? undefined;
 
+  const handleAfterRestore = (newContent: unknown[]) => {
+    // editor.replaceBlocks substitui o documento todo sem reload.
+    // Tipagem solta porque editor vem com generics pesados do BlockNote.
+    const editor = editorRef.current as {
+      document: unknown[];
+      replaceBlocks: (existing: unknown[], next: unknown[]) => void;
+    } | null;
+    if (editor) {
+      editor.replaceBlocks(editor.document, newContent);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-background">
       <PageHeader
         pageId={page.id}
         initialTitle={page.title}
         saveStatus={autoSave.status}
+        onOpenHistory={() => setHistoryOpen(true)}
         onOpenPermissions={() => setPermissionsOpen(true)}
       />
       <div className="flex-1 overflow-y-auto py-8">
@@ -61,12 +87,19 @@ const PagePage: React.FC = () => {
           initialContent={initialContent}
           onChange={(blocks) => autoSave.schedule(blocks)}
           editable={canEdit}
+          editorRef={editorRef}
         />
       </div>
       <PagePermissionsPanel
         open={permissionsOpen}
         onOpenChange={setPermissionsOpen}
         pageId={page.id}
+      />
+      <PageVersionsPanel
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        page={page as Page}
+        onAfterRestore={handleAfterRestore}
       />
     </div>
   );

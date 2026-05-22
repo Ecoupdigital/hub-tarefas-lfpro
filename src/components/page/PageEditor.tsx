@@ -32,6 +32,12 @@ export interface PageEditorProps {
   editable?: boolean;
   /** className do container externo. */
   className?: string;
+  /**
+   * Ref opcional que recebe a instancia do editor BlockNote. Usado por features
+   * externas que precisam manipular o documento (ex: restore de versao chama
+   * editor.replaceBlocks). Sem ref, o editor permanece encapsulado.
+   */
+  editorRef?: React.MutableRefObject<unknown>;
 }
 
 /**
@@ -52,6 +58,7 @@ const PageEditor: React.FC<PageEditorProps> = ({
   onChange,
   editable = true,
   className,
+  editorRef,
 }) => {
   const { resolvedTheme } = useTheme();
   const [mentionOpen, setMentionOpen] = useState(false);
@@ -75,6 +82,18 @@ const PageEditor: React.FC<PageEditorProps> = ({
   useEffect(() => {
     editor.isEditable = editable;
   }, [editor, editable]);
+
+  // Expoe a instancia do editor via ref para features externas (ex: restore de versao).
+  useEffect(() => {
+    if (editorRef) {
+      editorRef.current = editor;
+    }
+    return () => {
+      if (editorRef && editorRef.current === editor) {
+        editorRef.current = null;
+      }
+    };
+  }, [editor, editorRef]);
 
   return (
     <div className={className ?? 'w-full max-w-3xl mx-auto px-4'}>
