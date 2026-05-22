@@ -1,0 +1,91 @@
+/* ===== Notion Theme Variables (Fase 03) ===== */
+/* Escopado em .notion-view para nao interferir com tema LFPro global.
+   Toda paleta cinza neutra, sem warm gold. Funciona em light/dark independente. */
+
+.notion-view {
+  /* Paleta light (default quando .notion-view nao esta dentro de .dark) */
+  --notion-bg: #FFFFFF;
+  --notion-panel: #F7F6F3;
+  --notion-border: #E9E9E7;
+  --notion-text-primary: #37352F;
+  --notion-text-secondary: #787774;
+  --notion-text-tertiary: #9B9A97;
+  --notion-hover-bg: #F1F1EF;
+  --notion-row-hover: #F7F6F3;
+  --notion-header-bg: #FBFBFA;
+  --notion-blue: #2383E2;
+  --notion-blue-bg: rgba(35, 131, 226, 0.10);
+
+  /* Status accents (semantica Notion) */
+  --notion-status-red: #E03E3E;
+  --notion-status-red-bg: rgba(224, 62, 62, 0.12);
+  --notion-status-orange: #D9730D;
+  --notion-status-orange-bg: rgba(217, 115, 13, 0.12);
+  --notion-status-yellow: #DFAB01;
+  --notion-status-yellow-bg: rgba(223, 171, 1, 0.14);
+  --notion-status-green: #0F7B6C;
+  --notion-status-green-bg: rgba(15, 123, 108, 0.14);
+  --notion-status-blue: #0B6E99;
+  --notion-status-blue-bg: rgba(11, 110, 153, 0.12);
+  --notion-status-purple: #6940A5;
+  --notion-status-purple-bg: rgba(105, 64, 165, 0.14);
+  --notion-status-pink: #AD1A72;
+  --notion-status-pink-bg: rgba(173, 26, 114, 0.12);
+  --notion-status-gray: #9B9A97;
+  --notion-status-gray-bg: rgba(155, 154, 151, 0.18);
+
+  /* Tipografia: system sans Notion (nao Jost/Montserrat) */
+  --notion-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Tamanhos compactos Notion */
+  --notion-row-h: 32px;
+  --notion-kanban-card-padding: 8px 10px;
+  --notion-list-row-h: 40px;
+}
+
+/* Dark mode: aplicado quando .notion-view esta dentro de .dark (raiz <html>) */
+.dark .notion-view {
+  --notion-bg: #191919;
+  --notion-panel: #202020;
+  --notion-border: #373737;
+  --notion-text-primary: #FFFFFF;
+  --notion-text-secondary: #A6A6A6;
+  --notion-text-tertiary: #6B6B6B;
+  --notion-hover-bg: #252525;
+  --notion-row-hover: #202020;
+  --notion-header-bg: #1F1F1F;
+  --notion-blue: #529CCA;
+  --notion-blue-bg: rgba(82, 156, 202, 0.16);
+
+  --notion-status-red: #EF5350;
+  --notion-status-red-bg: rgba(239, 83, 80, 0.18);
+  --notion-status-orange: #FF9F40;
+  --notion-status-orange-bg: rgba(255, 159, 64, 0.18);
+  --notion-status-yellow: #FFDC49;
+  --notion-status-yellow-bg: rgba(255, 220, 73, 0.18);
+  --notion-status-green: #4DAB9A;
+  --notion-status-green-bg: rgba(77, 171, 154, 0.20);
+  --notion-status-blue: #529CCA;
+  --notion-status-blue-bg: rgba(82, 156, 202, 0.20);
+  --notion-status-purple: #9A6DD7;
+  --notion-status-purple-bg: rgba(154, 109, 215, 0.20);
+  --notion-status-pink: #E255A1;
+  --notion-status-pink-bg: rgba(226, 85, 161, 0.20);
+  --notion-status-gray: #A6A6A6;
+  --notion-status-gray-bg: rgba(166, 166, 166, 0.18);
+}
+
+/* Helpers de utilidade dentro de .notion-view */
+.notion-view {
+  background-color: var(--notion-bg);
+  color: var(--notion-text-primary);
+  font-family: var(--notion-font);
+}
+
+.notion-view .notion-border { border-color: var(--notion-border); }
+.notion-view .notion-hover:hover { background-color: var(--notion-hover-bg); }
+.notion-view .notion-row-hover:hover { background-color: var(--notion-row-hover); }
+.notion-view .notion-text-secondary { color: var(--notion-text-secondary); }
+.notion-view .notion-text-tertiary { color: var(--notion-text-tertiary); }
+.notion-view .notion-panel { background-color: var(--notion-panel); }
+.notion-view .notion-header-bg { background-color: var(--notion-header-bg); }
