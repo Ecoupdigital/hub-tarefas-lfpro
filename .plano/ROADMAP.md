@@ -55,7 +55,7 @@ Fases executam em ordem numérica: 1
 |-------|----------------|--------|-----------|
 | 0. Hub de Tarefas | N/A | Existing | - |
 | 1. Páginas estilo Notion | 9/9 | Complete | 2026-05-22 |
-| 2. Notion Database + Hierarquia + Blocos extras | 1/11 | In Progress | - |
+| 2. Notion Database + Hierarquia + Blocos extras | 10/11 | In Progress | - |
 
 ### Fase 2: Notion Database + Hierarquia + Blocos extras
 
@@ -85,8 +85,8 @@ Fases executam em ordem numérica: 1
 - [x] 02-04: Subpages CRUD + breadcrumb + cascade delete (RPC `soft_delete_page_cascade`)
 - [x] 02-05: Bloco Database no BlockNote (criacao via slash menu + render inline com stubs)
 - [x] 02-06: Views Tabela/Kanban/Calendar com mode='database' + DatabaseBoardContext + filtro 8 tipos
-- [ ] 02-07: `DatabaseListView` (Notion list view real)
-- [ ] 02-08: `DatabaseViewTabs` + persistencia de view ativa
+- [x] 02-07: `DatabaseListView` (Notion list view real)
+- [x] 02-08: `DatabaseViewTabs` + persistencia de view ativa
 - [x] 02-09: Edge Function `fetch-url-metadata` + Bloco Bookmark
 - [x] 02-10: Bloco Synced (synced_blocks)
 - [ ] 02-11: Permissoes + Realtime de synced_blocks (fechamento)
