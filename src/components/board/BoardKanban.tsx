@@ -17,8 +17,17 @@ import ColumnHeader from './kanban/KanbanColumnHeader';
 import KanbanToolbar from './kanban/KanbanToolbar';
 import { DroppableKanbanColumn, KanbanDragOverlay } from './kanban/DroppableKanbanColumn';
 
+interface BoardKanbanProps {
+  /**
+   * 'board' (default) usa container fullscreen `flex-1` com KanbanToolbar.
+   * 'database' (Fase 02-06) esconde toolbar e usa container reduzido
+   * `max-h-[520px]` para renderizar dentro do bloco BlockNote `database`.
+   */
+  mode?: 'board' | 'database';
+}
+
 // ── Main Component ─────────────────────────────────────────────────────
-const BoardKanban: React.FC = () => {
+const BoardKanban: React.FC<BoardKanbanProps> = ({ mode = 'board' }) => {
   const { activeBoard, setSelectedItem, users } = useApp();
   const updateColVal = useUpdateColumnValue();
   const createItem = useCreateItem();
@@ -450,7 +459,16 @@ const BoardKanban: React.FC = () => {
   }, [allItemsMap]);
 
   // ── Guard ────────────────────────────────────────────────────────────
-  if (!activeBoard) return null;
+  if (!activeBoard) {
+    if (mode === 'database') {
+      return (
+        <div className="px-3 py-4 font-density-cell text-muted-foreground">
+          Carregando database...
+        </div>
+      );
+    }
+    return null;
+  }
 
   // No modo 'column' sem nenhuma coluna elegivel, sugerir trocar para modo grupo
   const needsColumnFallback = settings.kanbanMode === 'column' && !kanbanCol;
@@ -471,8 +489,15 @@ const BoardKanban: React.FC = () => {
 
   // ── Render ───────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-board-bg">
-      {/* ── Header toolbar ────────────────────────────────────────── */}
+    <div
+      className={
+        mode === 'database'
+          ? 'max-h-[520px] flex flex-col overflow-hidden bg-board-bg rounded-md'
+          : 'flex-1 flex flex-col overflow-hidden bg-board-bg'
+      }
+    >
+      {/* ── Header toolbar (so em mode='board') ─────────────────── */}
+      {mode === 'board' && (
       <KanbanToolbar
         kanbanMode={settings.kanbanMode}
         onSetKanbanMode={(mode) => updateSetting('kanbanMode', mode)}
@@ -494,6 +519,7 @@ const BoardKanban: React.FC = () => {
         inlineSearch={inlineSearch}
         onInlineSearchChange={setInlineSearch}
       />
+      )}
 
       {/* Fallback: sem coluna elegivel no modo coluna */}
       {needsColumnFallback && (
