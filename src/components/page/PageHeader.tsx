@@ -19,6 +19,11 @@ interface Props {
   saveStatus: AutoSaveStatus;
   onOpenHistory?: () => void;
   onOpenPermissions?: () => void;
+  /**
+   * Slot opcional renderizado a esquerda do indicador de save. Usado pela
+   * Page.tsx para colocar o PagePresenceIndicator (avatars dos editores).
+   */
+  extraSlot?: React.ReactNode;
 }
 
 const STATUS_LABEL: Record<AutoSaveStatus, string> = {
@@ -35,6 +40,7 @@ const PageHeader: React.FC<Props> = ({
   saveStatus,
   onOpenHistory,
   onOpenPermissions,
+  extraSlot,
 }) => {
   const [title, setTitle] = useState(initialTitle);
   const renamePage = useRenamePage();
@@ -89,6 +95,7 @@ const PageHeader: React.FC<Props> = ({
         placeholder="Pagina sem titulo"
         className="flex-1 bg-transparent border-0 outline-none font-heading text-xl font-bold placeholder:text-muted-foreground/60"
       />
+      {extraSlot}
       <span
         className={`text-xs ${
           saveStatus === 'error' ? 'text-destructive' : 'text-muted-foreground'

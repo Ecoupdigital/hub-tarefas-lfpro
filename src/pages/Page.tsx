@@ -6,7 +6,9 @@ import PageEditor from '@/components/page/PageEditor';
 import PageHeader from '@/components/page/PageHeader';
 import PagePermissionsPanel from '@/components/page/PagePermissionsPanel';
 import PageVersionsPanel from '@/components/page/PageVersionsPanel';
+import PagePresenceIndicator from '@/components/page/PagePresenceIndicator';
 import { usePageAutoSave } from '@/components/page/usePageAutoSave';
+import { usePagePresence } from '@/components/page/usePagePresence';
 import LoadingScreen from '@/components/shared/LoadingScreen';
 import type { PartialBlock } from '@blocknote/core';
 import type { Page } from '@/types/page';
@@ -26,6 +28,7 @@ const PagePage: React.FC = () => {
     getCurrentTitle: () => currentTitleRef.current,
   });
   const canEdit = useCanEditPage(pageId ?? null);
+  const activeUsers = usePagePresence(pageId ?? null);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -111,6 +114,7 @@ const PagePage: React.FC = () => {
         saveStatus={autoSave.status}
         onOpenHistory={() => setHistoryOpen(true)}
         onOpenPermissions={() => setPermissionsOpen(true)}
+        extraSlot={<PagePresenceIndicator users={activeUsers} />}
       />
       <div className="flex-1 overflow-y-auto py-8">
         <PageEditor
