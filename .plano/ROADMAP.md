@@ -90,3 +90,20 @@ Fases executam em ordem numérica: 1
 - [x] 02-09: Edge Function `fetch-url-metadata` + Bloco Bookmark
 - [x] 02-10: Bloco Synced (synced_blocks)
 - [x] 02-11: Permissoes + Realtime de synced_blocks (fechamento)
+
+### Fase 3: Views Notion-style com toggle de estilo
+
+**Goal**: Cada view da database (Tabela, Kanban, Calendário, Lista) ganha variante visual Notion-style nativa, construída do zero como componente novo (NotionTableView, NotionKanbanView, NotionCalendarView, NotionListView). Toggle no header da view (LFPro / Notion) persistido em `board_views.config.style`. Estilo Notion usa paleta cinza neutra (sem warm gold). Estilo LFPro mantém comportamento atual (reusa Board* com mode='database').
+**Depends on**: Fase 2
+**Requirements**: [REQ-21, REQ-22, REQ-23, REQ-24, REQ-25, REQ-26, REQ-27, REQ-28]
+**Success Criteria** (what must be TRUE):
+  1. Header de cada view tem switch LFPro / Notion visível
+  2. Toggle persiste em `board_views.config.style` (default 'lfpro')
+  3. NotionTableView renderiza tabela com cabeçalho cinza, rows compactas, hover row, props com ícones por tipo, edit inline (sem popover)
+  4. NotionKanbanView renderiza kanban com cards limpos (nome + 2-3 props), colunas com header subtle + contador
+  5. NotionCalendarView renderiza grid de mês cheio, eventos como pílulas coloridas com texto truncado, hover mostra detalhe, toggle Semana/Mês
+  6. NotionListView renderiza linhas com nome inline + props em chips (paleta cinza)
+  7. Estilo Notion usa cinzas neutros (sem warm gold)
+  8. Trocar estilo não perde dados (apenas re-renderiza)
+  9. Estilo LFPro continua funcionando (variantes não se quebram entre si)
+**Plans**: TBD
