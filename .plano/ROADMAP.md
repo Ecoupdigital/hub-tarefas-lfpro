@@ -114,5 +114,5 @@ Fases executam em ordem numérica: 1
 - [ ] 03-03b: NotionTableView refinements
 - [ ] 03-04: NotionKanbanView
 - [ ] 03-05: NotionCalendarView
-- [ ] 03-06: NotionListView
+- [x] 03-06: NotionListView
 - [ ] 03-07: QA cross-view + polish final
