@@ -90,7 +90,7 @@ Estende schema da Fase 01 para suportar database inline (boards.page_id), hierar
 ## Verificacao
 
 - `npm run build` passa (16.29s, 0 erros novos)
-- `npm run test` passa: **193 testes (9 arquivos)** — 188 anteriores + 5 novos
+- `npm run test` passa: **193 testes (9 arquivos)**. 188 anteriores + 5 novos.
 - `npx tsc --noEmit -p tsconfig.app.json` nao introduz erros relacionados aos novos campos. Erros pre-existentes (BoardContext.description, duplicate_board_with_options RPC) permanecem (fora de escopo).
 - Migration estruturalmente valida: 9 statements estruturais chave presentes (boards.page_id, pages.parent_id, pages.sort_order, synced_blocks CREATE TABLE, can_access_synced_block FUNCTION, board_views_view_type_check x3, 4 RLS policies, realtime ADD TABLE).
 - Zero em-dash em todos os arquivos escritos.
