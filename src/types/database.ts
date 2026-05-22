@@ -60,3 +60,32 @@ export function isDatabase(board: { page_id?: string | null } | null | undefined
 export interface DatabaseBoard extends Board {
   page_id: string;
 }
+
+// ── View style toggle (Fase 03) ────────────────────────────────────────────
+
+/**
+ * Estilo visual de uma view de database.
+ * 'lfpro' (default): reusa Board* via mode='database', tokens warm gold LFPro.
+ * 'notion': renderiza NotionTableView/Kanban/Calendar/List com paleta cinza neutra.
+ *
+ * Persistido em board_views.config.style (jsonb, default 'lfpro').
+ */
+export type ViewStyle = 'lfpro' | 'notion';
+
+export const VIEW_STYLES: readonly ViewStyle[] = ['lfpro', 'notion'] as const;
+
+export const VIEW_STYLE_DEFAULT: ViewStyle = 'lfpro';
+
+export const VIEW_STYLE_LABELS: Record<ViewStyle, string> = {
+  lfpro: 'LFPro',
+  notion: 'Notion',
+};
+
+/**
+ * Le o style de uma BoardView (defensivo: trata config null, style faltando, valor invalido).
+ */
+export function getViewStyle(view: { config?: Record<string, unknown> | null } | null | undefined): ViewStyle {
+  const raw = (view?.config as Record<string, unknown> | null | undefined)?.style;
+  if (raw === 'notion' || raw === 'lfpro') return raw;
+  return VIEW_STYLE_DEFAULT;
+}
