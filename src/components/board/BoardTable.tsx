@@ -19,7 +19,16 @@ import BatchActionsBar from './BatchActionsBar';
 import { DragOverlayRow } from './table/DragOverlayRow';
 import { GroupSection } from './table/TableGroupSection';
 
-const BoardTable: React.FC = () => {
+interface BoardTableProps {
+  /**
+   * 'board' (default) usa container fullscreen `flex-1`.
+   * 'database' (Fase 02-06) usa container reduzido `max-h-[480px]` para
+   * renderizar dentro do bloco BlockNote `database`.
+   */
+  mode?: 'board' | 'database';
+}
+
+const BoardTable: React.FC<BoardTableProps> = ({ mode = 'board' }) => {
   const { activeBoard, activeBoardId, columnValues } = useApp();
   const { activeFilterCount } = useFilter();
   const { selectedItems, clearSelection } = useSelection();
@@ -143,6 +152,15 @@ const BoardTable: React.FC = () => {
   }, [activeBoard, boardDeps]);
 
   if (!activeBoard) {
+    // Em mode='database', boardId vem via DatabaseBoardContext: se activeBoard
+    // ainda nao chegou, mostra placeholder compacto em vez do CTA "selecione na sidebar".
+    if (mode === 'database') {
+      return (
+        <div className="px-3 py-4 font-density-cell text-muted-foreground">
+          Carregando database...
+        </div>
+      );
+    }
     return (
       <div className="flex-1 flex items-center justify-center">
         <p className="text-muted-foreground">Selecione um board na sidebar</p>
@@ -341,7 +359,7 @@ const BoardTable: React.FC = () => {
 
   if (hasFiltersActive && totalVisibleItems === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center py-16 text-muted-foreground">
+      <div className={`${mode === 'database' ? 'py-8' : 'flex-1 py-16'} flex flex-col items-center justify-center text-muted-foreground`}>
         <Search className="w-10 h-10 mb-3 opacity-30" />
         <p className="text-sm">Nenhum item corresponde aos filtros aplicados.</p>
       </div>
@@ -362,7 +380,15 @@ const BoardTable: React.FC = () => {
   const groupDndIds = activeBoard.groups.map(g => `grp-${g.id}`);
 
   return (
-    <div className="flex-1 overflow-auto scrollbar-thin bg-board-bg" role="grid" aria-label="Tabela do board">
+    <div
+      className={
+        mode === 'database'
+          ? 'max-h-[480px] overflow-auto scrollbar-thin bg-board-bg rounded-md'
+          : 'flex-1 overflow-auto scrollbar-thin bg-board-bg'
+      }
+      role="grid"
+      aria-label={mode === 'database' ? 'Tabela da database' : 'Tabela do board'}
+    >
       <DndProvider onDragEnd={handleDragEnd} onDragOver={handleDragOver} renderOverlay={renderDragOverlay}>
         <div className="min-w-max">
           <SortableContext items={groupDndIds} strategy={verticalListSortingStrategy}>
@@ -371,7 +397,7 @@ const BoardTable: React.FC = () => {
                 {({ attributes, listeners, setNodeRef, isDragging, style }) => (
                   <div ref={setNodeRef} style={{ ...style, opacity: isDragging ? 0.6 : 1 }}>
                     <div {...attributes} {...listeners} className="absolute left-0 top-0 h-8 w-1.5 cursor-grab active:cursor-grabbing z-20" title="Arrastar grupo" />
-                    <GroupSection group={group} columns={activeBoard.columns} boardId={activeBoard.id} allSubitems={allSubitems} allGroups={activeBoard.groups} allItemIds={allItemIds} colorRules={colorRules} onFilePreview={setPreviewFile} blockedItemMap={blockedItemMap} />
+                    <GroupSection group={group} columns={activeBoard.columns} boardId={activeBoard.id} allSubitems={allSubitems} allGroups={activeBoard.groups} allItemIds={allItemIds} colorRules={colorRules} onFilePreview={setPreviewFile} blockedItemMap={blockedItemMap} mode={mode} />
                   </div>
                 )}
               </SortableItem>
@@ -384,7 +410,7 @@ const BoardTable: React.FC = () => {
         </div>
       </DndProvider>
       <CreateGroupModal open={showCreateGroup} onOpenChange={setShowCreateGroup} boardId={activeBoard.id} />
-      {selectedItems.size > 0 && <BatchActionsBar />}
+      {mode === 'board' && selectedItems.size > 0 && <BatchActionsBar />}
       <FilePreview file={previewFile} open={!!previewFile} onOpenChange={(open) => { if (!open) setPreviewFile(null); }} />
     </div>
   );

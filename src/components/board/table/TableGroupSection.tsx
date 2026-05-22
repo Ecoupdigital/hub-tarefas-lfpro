@@ -140,7 +140,7 @@ const SortableColumnHeaders: React.FC<{
   );
 };
 
-export const GroupSection: React.FC<{ group: Group; columns: Column[]; boardId: string; allSubitems: any[]; allGroups: Group[]; allItemIds: string[]; colorRules?: ColorRule[]; onFilePreview?: (file: ItemFile) => void; blockedItemMap?: Map<string, string[]> }> = ({ group, columns, boardId, allSubitems, allGroups, allItemIds, colorRules, onFilePreview, blockedItemMap }) => {
+export const GroupSection: React.FC<{ group: Group; columns: Column[]; boardId: string; allSubitems: any[]; allGroups: Group[]; allItemIds: string[]; colorRules?: ColorRule[]; onFilePreview?: (file: ItemFile) => void; blockedItemMap?: Map<string, string[]>; mode?: 'board' | 'database' }> = ({ group, columns, boardId, allSubitems, allGroups, allItemIds, colorRules, onFilePreview, blockedItemMap, mode = 'board' }) => {
   const { toggleGroupCollapse, addItemToGroup } = useApp();
   const { selectAll, isSelected } = useSelection();
   const [newItemName, setNewItemName] = useState('');
@@ -354,7 +354,7 @@ export const GroupSection: React.FC<{ group: Group; columns: Column[]; boardId: 
         </DroppableGroup>
       )}
 
-      <CreateColumnModal open={showCreateColumn} onOpenChange={setShowCreateColumn} boardId={boardId} />
+      <CreateColumnModal open={showCreateColumn} onOpenChange={setShowCreateColumn} boardId={boardId} databaseMode={mode === 'database'} />
       <EditColumnModal open={!!editColumn} onOpenChange={(o) => { if (!o) setEditColumn(null); }} column={editColumn} />
       <AlertDialog open={showDeleteGroup} onOpenChange={setShowDeleteGroup}>
         <AlertDialogContent>
