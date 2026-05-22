@@ -5,7 +5,7 @@ import { buildItemsQuery, ITEMS_PAGE_SIZE } from '@/utils/filterToPostgrest';
 import type { BoardSort } from '@/context/AppContext';
 import { UndoRedoContext } from '@/context/UndoRedoContext';
 import { executeAutomations } from './useAutomationEngine';
-import type { PageTreeNode } from '@/types/page';
+import type { PageTreeNode, SyncedBlock } from '@/types/page';
 
 // ---- Profiles ----
 export const useProfiles = () =>
@@ -974,3 +974,69 @@ export const useDuplicateUpdate = () => {
     },
   });
 };
+
+// ---- Synced Blocks (Fase 02-10) ----
+
+/**
+ * Query individual de synced_block.
+ *
+ * `staleTime: 0` garante refetch imediato apos invalidacao via realtime
+ * (edicao em outra page reflete neste editor sem cache atrasado).
+ *
+ * RLS via `is_workspace_member` (migration 20260523100000):
+ * usuario fora do workspace recebe nenhum row -> retornamos null pra que
+ * o componente renderize placeholder "Bloco nao acessivel" em vez de erro.
+ *
+ * `maybeSingle()` ja diferencia "sem row" (ok, retorna null) de "erro real"
+ * (lanca; mas como RLS apenas filtra rows, o caminho normal e null).
+ */
+export const useSyncedBlock = (id: string | null | undefined) =>
+  useQuery({
+    queryKey: ['synced-block', id],
+    enabled: !!id,
+    staleTime: 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('synced_blocks')
+        .select('id, workspace_id, content, created_by, created_at, updated_at')
+        .eq('id', id!)
+        .maybeSingle();
+      if (error) {
+        // RLS apenas filtra; erro aqui significa problema real (rede/permissao).
+        // Retornamos null pra UI nao quebrar e usuario ver placeholder amigavel.
+        console.error('useSyncedBlock erro:', error);
+        return null;
+      }
+      return (data as unknown as SyncedBlock | null) ?? null;
+    },
+  });
+
+/**
+ * Lista synced_blocks de um workspace pro picker dialog.
+ *
+ * `enabled` permite suspender a query enquanto o dialog esta fechado
+ * (evita fetch desnecessario na montagem do PageEditor).
+ *
+ * Ordenado por `updated_at desc` pra mostrar mais recentes primeiro,
+ * facilitando re-uso de blocos sincronizados em uso ativo.
+ */
+export const useSyncedBlocksByWorkspace = (
+  workspaceId: string | null | undefined,
+  enabled: boolean = true,
+) =>
+  useQuery({
+    queryKey: ['synced-blocks-workspace', workspaceId],
+    enabled: !!workspaceId && enabled,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('synced_blocks')
+        .select('id, workspace_id, content, created_at, updated_at')
+        .eq('workspace_id', workspaceId!)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as Array<
+        Pick<SyncedBlock, 'id' | 'workspace_id' | 'content' | 'created_at' | 'updated_at'>
+      >;
+    },
+  });
