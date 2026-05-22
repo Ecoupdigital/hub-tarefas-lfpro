@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { UndoRedoContext } from '@/context/UndoRedoContext';
+import { nextKeyAfter } from '@/utils/lexorank';
 import { toast } from 'sonner';
 
 async function logActivity(params: { boardId: string; action: string; entityType: string; entityId: string; details?: any }) {
@@ -90,23 +91,41 @@ export const useCreatePage = () => {
       workspaceId,
       title,
       icon,
+      parentId,
     }: {
       workspaceId: string;
       title: string;
       icon?: string;
+      parentId?: string | null;
     }) => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Not authenticated');
 
-      // Posicionar no final usando mesma logica de useCreateBoard
-      const { data: lastPage } = await supabase
+      // Calcular sort_order lexorank: ultimo sibling no nivel + nextKeyAfter
+      let siblingsQ = supabase
+        .from('pages')
+        .select('sort_order')
+        .eq('workspace_id', workspaceId)
+        .eq('state', 'active');
+      siblingsQ =
+        parentId === null || parentId === undefined
+          ? siblingsQ.is('parent_id', null)
+          : siblingsQ.eq('parent_id', parentId);
+      const { data: siblings } = await siblingsQ
+        .order('sort_order', { ascending: false })
+        .limit(1);
+      const lastSortOrder = (siblings?.[0] as { sort_order?: string } | undefined)?.sort_order ?? null;
+      const newSortOrder = nextKeyAfter(lastSortOrder);
+
+      // Manter `position` (retrocompat) com maxPosition + 1000
+      const { data: lastPos } = await supabase
         .from('pages')
         .select('position')
         .eq('workspace_id', workspaceId)
         .eq('state', 'active')
         .order('position', { ascending: false })
         .limit(1);
-      const maxPosition = lastPage?.[0]?.position ?? 0;
+      const maxPosition = lastPos?.[0]?.position ?? 0;
 
       const { data, error } = await supabase
         .from('pages')
@@ -116,6 +135,8 @@ export const useCreatePage = () => {
           icon: icon ?? null,
           content: [],
           position: maxPosition + 1000,
+          sort_order: newSortOrder,
+          parent_id: parentId ?? null,
           created_by: user.user.id,
         })
         .select()
@@ -123,9 +144,14 @@ export const useCreatePage = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['pages'] });
       qc.invalidateQueries({ queryKey: ['all-pages'] });
+      // Arvore: invalida o nivel exato afetado e o workspace inteiro
+      // (broad, porque child_count do pai pode ter mudado em outros niveis)
+      qc.invalidateQueries({ queryKey: ['pages-tree', vars.workspaceId, vars.parentId ?? null] });
+      qc.invalidateQueries({ queryKey: ['pages-tree', vars.workspaceId] });
+      qc.invalidateQueries({ queryKey: ['pages-tree'] });
     },
   });
 };
@@ -135,15 +161,27 @@ export const useDeletePage = () => {
   return useMutation({
     retry: 1,
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('pages')
-        .update({ state: 'deleted' })
-        .eq('id', id);
+      // Cascade soft delete via RPC: marca page + descendentes + databases ancorados
+      // como state='deleted'. RPC retorna count de pages afetadas.
+      const { data, error } = await supabase.rpc(
+        'soft_delete_page_cascade' as never,
+        { _page_id: id } as never,
+      );
       if (error) throw error;
+      return (data as unknown as number) ?? 0;
     },
-    onSuccess: () => {
+    onSuccess: (affected) => {
       qc.invalidateQueries({ queryKey: ['pages'] });
       qc.invalidateQueries({ queryKey: ['all-pages'] });
+      qc.invalidateQueries({ queryKey: ['pages-tree'] });
+      qc.invalidateQueries({ queryKey: ['boards'] });
+      qc.invalidateQueries({ queryKey: ['all-boards'] });
+      qc.invalidateQueries({ queryKey: ['databases-for-page'] });
+      qc.invalidateQueries({ queryKey: ['trash-pages'] });
+      // Toast informativo quando ha cascade (mais de 1 page deletada)
+      if (typeof affected === 'number' && affected > 1) {
+        toast.success(`${affected} paginas movidas para a lixeira`);
+      }
     },
     onError: (error: Error) => {
       toast.error('Erro ao excluir pagina. Tente novamente.');
@@ -171,6 +209,90 @@ export const useRenamePage = () => {
     onError: (error: Error) => {
       toast.error('Erro ao renomear pagina. Tente novamente.');
       console.error('useRenamePage', error);
+    },
+  });
+};
+
+/**
+ * Reordena page na arvore. Atualiza sort_order e opcionalmente parent_id.
+ *
+ * @param pageId - id da page
+ * @param newSortOrder - chave lexorank base-62 (gerada via @/utils/lexorank.keyBetween)
+ * @param newParentId - se mudou de pai; undefined = nao mudou; null = move pra raiz; string = move pra sub
+ *
+ * Optimistic update: atualiza cache de ['pages-tree', workspaceId, oldParentId|newParentId]
+ * antes do server confirm. Em caso de erro, restora estado anterior.
+ */
+export const useReorderPage = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: 1,
+    mutationFn: async ({
+      pageId,
+      newSortOrder,
+      newParentId,
+    }: {
+      pageId: string;
+      newSortOrder: string;
+      newParentId?: string | null;
+    }) => {
+      const update: { sort_order: string; parent_id?: string | null } = { sort_order: newSortOrder };
+      if (newParentId !== undefined) update.parent_id = newParentId;
+      const { data, error } = await supabase
+        .from('pages')
+        .update(update)
+        .eq('id', pageId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onMutate: async ({ pageId, newSortOrder, newParentId }) => {
+      // Cancela queries pendentes pra evitar overwrite do nosso optimistic snapshot
+      await qc.cancelQueries({ queryKey: ['pages-tree'] });
+
+      // Snapshot de TODOS os caches pages-tree pra rollback
+      const snapshots = qc.getQueriesData<any[]>({ queryKey: ['pages-tree'] });
+
+      // Atualiza optimistically: encontra a page em qualquer cache pages-tree
+      // (workspace, parentId) e move ela ordenando por sort_order.
+      snapshots.forEach(([key, data]) => {
+        if (!Array.isArray(data)) return;
+        const idx = data.findIndex((p: any) => p.id === pageId);
+        if (idx === -1) return;
+
+        if (newParentId !== undefined) {
+          // Remove do cache atual (parent mudou)
+          const next = [...data.slice(0, idx), ...data.slice(idx + 1)];
+          qc.setQueryData(key, next);
+        } else {
+          // Mesmo parent: so atualiza sort_order + reordena
+          const updated = { ...data[idx], sort_order: newSortOrder };
+          const without = [...data.slice(0, idx), ...data.slice(idx + 1)];
+          const reordered = [...without, updated].sort((a: any, b: any) =>
+            (a.sort_order ?? '').localeCompare(b.sort_order ?? ''),
+          );
+          qc.setQueryData(key, reordered);
+        }
+      });
+
+      return { snapshots };
+    },
+    onSuccess: () => {
+      // Realtime + invalidacao explicita (forca refetch consistente)
+      qc.invalidateQueries({ queryKey: ['pages-tree'] });
+      qc.invalidateQueries({ queryKey: ['pages'] });
+      qc.invalidateQueries({ queryKey: ['all-pages'] });
+    },
+    onError: (error: Error, _vars, context) => {
+      // Rollback de todos os caches pages-tree pra estado pre-mutate
+      if (context?.snapshots) {
+        context.snapshots.forEach(([key, data]) => {
+          qc.setQueryData(key, data);
+        });
+      }
+      toast.error('Erro ao reordenar pagina. Tente novamente.');
+      console.error('useReorderPage', error);
     },
   });
 };
