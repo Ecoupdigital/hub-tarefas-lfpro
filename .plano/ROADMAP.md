@@ -81,7 +81,7 @@ Fases executam em ordem numérica: 1
 **Plans**:
 - [x] 02-01: Schema fundacional (boards.page_id, pages.parent_id+sort_order, synced_blocks, view list_detailed) + tipos TS
 - [x] 02-02: Sidebar tree expansivel (usePagesTree + PageTreeItem + DatabaseSidebarItem)
-- [ ] 02-03: Drag/drop na arvore com lexorank (`useReorderPage` + dnd-kit)
+- [x] 02-03: Drag/drop na arvore com lexorank (`useReorderPage` + dnd-kit)
 - [x] 02-04: Subpages CRUD + breadcrumb + cascade delete (RPC `soft_delete_page_cascade`)
 - [ ] 02-05: View Kanban em modo database
 - [ ] 02-06: View Calendário em modo database
