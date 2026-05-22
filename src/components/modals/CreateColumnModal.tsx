@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { useCreateColumn } from '@/hooks/useCrudMutations';
 import { toast } from 'sonner';
 import { Plus, X, Star, BarChart3 } from 'lucide-react';
 import ColorPalette from '@/components/ui/color-palette';
+import { DATABASE_COLUMN_TYPES } from '@/types/database';
 
 const COLUMN_TYPES = [
   { value: 'text', label: 'Texto' },
@@ -74,9 +75,16 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   boardId: string;
+  /**
+   * Quando true (board e database inline, page_id IS NOT NULL), filtra a UI
+   * para os 8 tipos suportados em databases no MVP da Fase 02 (text, status,
+   * date, people, number, checkbox, dropdown, long_text). Os outros 13 tipos
+   * ficam escondidos do select.
+   */
+  databaseMode?: boolean;
 }
 
-const CreateColumnModal: React.FC<Props> = ({ open, onOpenChange, boardId }) => {
+const CreateColumnModal: React.FC<Props> = ({ open, onOpenChange, boardId, databaseMode = false }) => {
   const [title, setTitle] = useState('');
   const [columnType, setColumnType] = useState('text');
   const [statusLabels, setStatusLabels] = useState<StatusLabelInput[]>(STATUS_TEMPLATES[0].labels);
@@ -86,6 +94,14 @@ const CreateColumnModal: React.FC<Props> = ({ open, onOpenChange, boardId }) => 
   const [formulaText, setFormulaText] = useState('');
   const [statusError, setStatusError] = useState('');
   const createColumn = useCreateColumn();
+
+  // Em databaseMode, garante que o tipo selecionado pertence ao subset suportado
+  useEffect(() => {
+    if (!databaseMode) return;
+    if (!(DATABASE_COLUMN_TYPES as readonly string[]).includes(columnType)) {
+      setColumnType('text');
+    }
+  }, [databaseMode, columnType]);
 
   const getSettings = () => {
     if (columnType === 'status') {
@@ -167,11 +183,18 @@ const CreateColumnModal: React.FC<Props> = ({ open, onOpenChange, boardId }) => 
             <Select value={columnType} onValueChange={setColumnType}>
               <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {COLUMN_TYPES.map(t => (
-                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                ))}
+                {COLUMN_TYPES
+                  .filter(t => databaseMode ? (DATABASE_COLUMN_TYPES as readonly string[]).includes(t.value) : true)
+                  .map(t => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
               </SelectContent>
             </Select>
+            {databaseMode && (
+              <p className="mt-1.5 font-density-tiny text-muted-foreground">
+                Databases suportam 8 tipos de coluna no MVP.
+              </p>
+            )}
           </div>
 
           {/* Status labels config */}
