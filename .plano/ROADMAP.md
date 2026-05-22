@@ -56,6 +56,7 @@ Fases executam em ordem numérica: 1
 | 0. Hub de Tarefas | N/A | Existing | - |
 | 1. Páginas estilo Notion | 9/9 | Complete | 2026-05-22 |
 | 2. Notion Database + Hierarquia + Blocos extras | 11/11 | Complete | 2026-05-23 |
+| 3. Views Notion-style com toggle de estilo | 1/8 | In Progress | - |
 
 ### Fase 2: Notion Database + Hierarquia + Blocos extras
 
@@ -106,4 +107,12 @@ Fases executam em ordem numérica: 1
   7. Estilo Notion usa cinzas neutros (sem warm gold)
   8. Trocar estilo não perde dados (apenas re-renderiza)
   9. Estilo LFPro continua funcionando (variantes não se quebram entre si)
-**Plans**: TBD
+**Plans**:
+- [x] 03-01: Foundation (tipos ViewStyle + paleta CSS Notion + hook useViewStyle)
+- [ ] 03-02: Toggle UI no header da view + DatabaseViewRenderer wrap
+- [ ] 03-03: NotionTableView
+- [ ] 03-03b: NotionTableView refinements
+- [ ] 03-04: NotionKanbanView
+- [ ] 03-05: NotionCalendarView
+- [ ] 03-06: NotionListView
+- [ ] 03-07: QA cross-view + polish final
