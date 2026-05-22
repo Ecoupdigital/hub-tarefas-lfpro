@@ -103,6 +103,10 @@ const PagePermissionsPanel: React.FC<Props> = ({ open, onOpenChange, pageId }) =
           </DialogTitle>
         </DialogHeader>
 
+        <p className="text-xs text-muted-foreground px-1">
+          Databases criadas dentro desta pagina herdam estas permissoes automaticamente. Subpaginas mantem permissoes proprias.
+        </p>
+
         <div className="space-y-4">
           {/* Add member section */}
           {showAddUser ? (
