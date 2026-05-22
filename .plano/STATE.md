@@ -1,7 +1,7 @@
 ---
 current_phase: 03
 current_plan: 03-07
-last_session: 2026-05-22T17:54:42Z
+last_session: 2026-05-22T17:56:04Z
 phases_complete: [00, 01, 02]
 phases_in_progress: [03]
 ---
@@ -12,7 +12,7 @@ phases_in_progress: [03]
 
 - **Fase ativa:** 03 — Views Notion-style com toggle de estilo
 - **Próximo plano (sequencial):** 03-07 (QA cross-view + polish final)
-- **Último plano executado:** 03-06 — NotionListView linhas compactas horizontais (concluído 2026-05-22). 2 commits, 3 tarefas (2 auto + 1 human-verify auto-PASS), tsc/vitest 212/212 limpos.
+- **Último plano executado:** 03-04 — NotionKanbanView completo (substitui stub 03-02, drag entre status + cards limpos). 4 commits, 5 tarefas (4 auto + 1 human-verify auto-PASS), tsc/vitest 212/212 limpos.
 
 ## Progresso por Fase
 
@@ -21,7 +21,7 @@ phases_in_progress: [03]
 | 00 — Hub de Tarefas | Existing | N/A |
 | 01 — Páginas estilo Notion | Complete | 9/9 |
 | 02 — Notion Database + Hierarquia + Blocos extras | Complete | 11/11 |
-| 03 — Views Notion-style com toggle de estilo | In Progress | 7/8 |
+| 03 — Views Notion-style com toggle de estilo | In Progress | 8/8 |
 
 ## Decisões Recentes
 
@@ -53,11 +53,18 @@ phases_in_progress: [03]
 - **03-06:** Layout horizontal com flex-wrap e max-w-[60%] na area de chips — permite quebra defensiva sem dominar o nome.
 - **03-06:** visibleProps lido via `useBoardViews` + lookup por `view_type === 'list_detailed'` — mesma fonte que DatabaseListView LFPro (consistencia com 02-08).
 - **03-06:** Group headers so renderizam se board tem 2+ grupos — evita poluicao em boards single-group.
+- **03-04:** Sem reorder dentro da mesma coluna no MVP — drag entre colunas mesmas vira no-op (`currentValue === nextValue`), evita position-by-status fora do escopo.
+- **03-04:** PointerSensor com `distance: 4` (mesmo valor de `src/components/dnd/DndProvider.tsx`) — consistencia com pattern existente, equilibra nao roubar clicks com nao exigir gesto longo.
+- **03-04:** "+ Nova" usa `firstGroup` do board — kanban e agrupado por status (nao por group), entao escolher group e UX confusa.
+- **03-04:** "+ Nova" chain `useCreateItem.onSuccess -> useUpdateColumnValue` — reusa hooks com optimistic update + realtime sync ja em producao, zero RPC nova.
+- **03-04:** Coluna `__none__` (Sem status) auto-hide se vazia — Notion so mostra "No Status" quando ha items orfaos.
+- **03-04:** Empty state explicito quando board nao tem coluna status — mensagem orientativa em vez de tela em branco.
+- **03-04:** `useKanbanStatusGroup` puro (useMemo, sem mutations) — derivado de activeBoard + statusColumnId, testavel sem QueryClient.
 
 ## Sessão Atual
 
 - **Iniciada:** 2026-05-22T17:40:40Z
-- **Última ação:** Completou plano 03-06 (NotionListView linhas compactas horizontais). 2 commits, tsc limpo, 212/212 testes, dev server HMR OK.
+- **Última ação:** Completou plano 03-04 (NotionKanbanView — substitui stub, drag entre status + cards limpos). 4 commits, 5 tarefas (4 auto + 1 human-verify auto-PASS), tsc limpo, 212/212 testes.
 
 ## Performance Metrics
 
@@ -67,3 +74,4 @@ phases_in_progress: [03]
 - **03-03b:** 111s, 4 tarefas (3 auto + 1 human-verify auto-PASS), 2 arquivos criados, 1 modificado, 0 testes novos, 3 commits
 - **03-05:** 134s, 6 tarefas (5 auto + 1 human-verify auto-PASS), 4 arquivos criados, 1 modificado, 0 testes novos, 5 commits
 - **03-06:** 97s, 3 tarefas (2 auto + 1 human-verify auto-PASS), 1 arquivo criado, 1 modificado, 0 testes novos, 2 commits
+- **03-04:** 171s, 5 tarefas (4 auto + 1 human-verify auto-PASS), 3 arquivos criados, 1 modificado, 0 testes novos, 4 commits
