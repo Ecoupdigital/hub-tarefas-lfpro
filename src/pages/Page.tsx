@@ -84,6 +84,7 @@ const PagePage: React.FC = () => {
       />
       <div className="flex-1 overflow-y-auto py-8">
         <PageEditor
+          pageId={page.id}
           initialContent={initialContent}
           onChange={(blocks) => autoSave.schedule(blocks)}
           editable={canEdit}

@@ -13,6 +13,7 @@ import { lfproBlockNoteSchema } from './blocknote-schema';
 import { getCustomSlashMenuItems } from './slash-menu';
 import ItemPickerPopover from './blocks/ItemPickerPopover';
 import BoardPickerPopover from './blocks/BoardPickerPopover';
+import { usePageImageUpload } from './usePageImageUpload';
 
 // Imports de CSS obrigatorios do BlockNote.
 // Nao remover. Os overrides finos vivem em src/styles/blocknote-overrides.css.
@@ -38,6 +39,12 @@ export interface PageEditorProps {
    * editor.replaceBlocks). Sem ref, o editor permanece encapsulado.
    */
   editorRef?: React.MutableRefObject<unknown>;
+  /**
+   * Id da pagina, usado pelo upload de imagem para compor o path no bucket
+   * `attachments`. Quando omitido, upload de imagem fica desabilitado (BlockNote
+   * mostra mensagem padrao orientando a colar URL).
+   */
+  pageId?: string;
 }
 
 /**
@@ -59,14 +66,21 @@ const PageEditor: React.FC<PageEditorProps> = ({
   editable = true,
   className,
   editorRef,
+  pageId,
 }) => {
   const { resolvedTheme } = useTheme();
   const [mentionOpen, setMentionOpen] = useState(false);
   const [embedBoardOpen, setEmbedBoardOpen] = useState(false);
 
+  // Upload de imagem para o bucket `attachments`. Quando `pageId` esta ausente
+  // (uso fora da rota /page/:id, como em previews), nao passamos uploadFile e
+  // o BlockNote orienta o usuario a colar URL no lugar.
+  const uploadImage = usePageImageUpload(pageId ?? '');
+
   const editor = useCreateBlockNote({
     schema: lfproBlockNoteSchema,
     dictionary: ptDictionary,
+    uploadFile: pageId ? uploadImage : undefined,
     initialContent:
       initialContent && initialContent.length > 0
         ? (initialContent as unknown as PartialBlock[])
