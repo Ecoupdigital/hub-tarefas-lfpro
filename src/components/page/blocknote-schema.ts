@@ -6,6 +6,7 @@ import {
 } from '@blocknote/core';
 import { MentionInlineContent } from './blocks/MentionInlineContent';
 import { EmbedBoardBlock } from './blocks/EmbedBoardBlock';
+import { DatabaseBlock } from './blocks/DatabaseBlock';
 
 /**
  * Schema customizado do BlockNote para o LFPro Tasks.
@@ -13,6 +14,7 @@ import { EmbedBoardBlock } from './blocks/EmbedBoardBlock';
  * Estende defaults com:
  *  - inline content `mention-item` (@chip clicavel para item, 01-05)
  *  - block `embed-board` (mini-view read-only de board, 01-05b)
+ *  - block `database` (database inline ancorada na page, 02-05)
  *
  * Para registrar novos blocks/inline content, criar specs em ./blocks/
  * e adicionar nos maps abaixo. Tipos sao inferidos automaticamente.
@@ -20,11 +22,13 @@ import { EmbedBoardBlock } from './blocks/EmbedBoardBlock';
 // createReactBlockSpec retorna uma factory (options?) => BlockSpec na API
 // do BlockNote v0.51. Invocamos aqui para obter o spec final consumido pelo schema.
 const embedBoardSpec = EmbedBoardBlock();
+const databaseSpec = DatabaseBlock();
 
 export const lfproBlockNoteSchema = BlockNoteSchema.create({
   blockSpecs: {
     ...defaultBlockSpecs,
     'embed-board': embedBoardSpec,
+    'database': databaseSpec,
   },
   inlineContentSpecs: {
     ...defaultInlineContentSpecs,
