@@ -19,11 +19,13 @@ import type {
  *
  *  - `onTriggerEmbedBoard` (01-05b): embed read-only de board existente
  *  - `onTriggerDatabase`   (02-05):  criar database inline na page atual
+ *  - `onTriggerBookmark`   (02-09):  inserir card de preview a partir de uma URL
  */
 export interface SlashMenuHandlers {
   onTriggerMention: () => void;
   onTriggerEmbedBoard?: () => void;
   onTriggerDatabase?: () => void;
+  onTriggerBookmark?: () => void;
 }
 
 /**
@@ -72,6 +74,16 @@ export function getCustomSlashMenuItems<
       aliases: ['database', 'db', 'mini board', 'mini-board', 'tabela editavel', 'kanban', 'calendario'],
       group: 'LFPro',
       subtext: 'Inserir mini-board com Tabela, Kanban, Calendario e Lista detalhada',
+    });
+  }
+
+  if (handlers.onTriggerBookmark) {
+    customs.push({
+      title: 'Bookmark',
+      onItemClick: () => handlers.onTriggerBookmark!(),
+      aliases: ['bookmark', 'link', 'url', 'preview', 'card', 'site'],
+      group: 'LFPro',
+      subtext: 'Inserir card com preview de uma URL (titulo, descricao, imagem)',
     });
   }
 

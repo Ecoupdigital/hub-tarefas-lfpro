@@ -7,6 +7,7 @@ import { BlockNoteView } from '@blocknote/mantine';
 import { filterSuggestionItems, type PartialBlock } from '@blocknote/core';
 import { pt as ptDictionary } from '@blocknote/core/locales';
 import { useTheme } from 'next-themes';
+import { toast } from 'sonner';
 
 import { lfproBlockNoteLightTheme, lfproBlockNoteDarkTheme } from './blocknote-theme';
 import { lfproBlockNoteSchema } from './blocknote-schema';
@@ -14,8 +15,10 @@ import { getCustomSlashMenuItems } from './slash-menu';
 import ItemPickerPopover from './blocks/ItemPickerPopover';
 import BoardPickerPopover from './blocks/BoardPickerPopover';
 import CreateDatabaseDialog from './CreateDatabaseDialog';
+import UrlPromptDialog from './blocks/UrlPromptDialog';
 import { usePageImageUpload } from './usePageImageUpload';
 import { usePage } from '@/hooks/useSupabaseData';
+import { supabase } from '@/integrations/supabase/client';
 
 // Imports de CSS obrigatorios do BlockNote.
 // Nao remover. Os overrides finos vivem em src/styles/blocknote-overrides.css.
@@ -74,6 +77,7 @@ const PageEditor: React.FC<PageEditorProps> = ({
   const [mentionOpen, setMentionOpen] = useState(false);
   const [embedBoardOpen, setEmbedBoardOpen] = useState(false);
   const [databaseDialogOpen, setDatabaseDialogOpen] = useState(false);
+  const [bookmarkPromptOpen, setBookmarkPromptOpen] = useState(false);
 
   // Lookup do workspace via pageId pra passar pro CreateDatabaseDialog.
   // Quando pageId esta ausente (preview/uso fora da rota /page/:id), o item
@@ -142,6 +146,7 @@ const PageEditor: React.FC<PageEditorProps> = ({
                 onTriggerEmbedBoard: () => setEmbedBoardOpen(true),
                 onTriggerDatabase:
                   pageId && workspaceId ? () => setDatabaseDialogOpen(true) : undefined,
+                onTriggerBookmark: () => setBookmarkPromptOpen(true),
               }),
               query,
             )
@@ -207,6 +212,94 @@ const PageEditor: React.FC<PageEditorProps> = ({
           }}
         />
       )}
+
+      <UrlPromptDialog
+        open={bookmarkPromptOpen}
+        onOpenChange={setBookmarkPromptOpen}
+        onConfirm={async (url) => {
+          const cursor = editor.getTextCursorPosition();
+          // 1. Insere bloco com props minimas pra UX otimista (placeholder rapido
+          //    com so a URL; renderiza estado fallback enquanto a Edge Function roda).
+          editor.insertBlocks(
+            [
+              {
+                type: 'bookmark',
+                props: {
+                  url,
+                  title: '',
+                  description: '',
+                  image: '',
+                  favicon: '',
+                  site_name: '',
+                  fetched_at: '',
+                },
+              },
+            ] as unknown as PartialBlock[],
+            cursor.block,
+            'after',
+          );
+
+          // 2. Captura referencia do bloco recem-inserido. insertBlocks nao retorna
+          //    com tipos estritos na nossa API publica, entao buscamos no documento
+          //    o ultimo bloco bookmark com a URL alvo e fetched_at vazio.
+          const findInsertedBlock = () => {
+            const docBlocks = (editor.document ?? []) as unknown as Array<{
+              id?: string;
+              type?: string;
+              props?: { url?: string; fetched_at?: string };
+            }>;
+            for (let i = docBlocks.length - 1; i >= 0; i--) {
+              const blk = docBlocks[i];
+              if (
+                blk.type === 'bookmark' &&
+                blk.props?.url === url &&
+                !blk.props?.fetched_at
+              ) {
+                return blk;
+              }
+            }
+            return null;
+          };
+
+          // 3. Em paralelo: busca metadata e atualiza o bloco.
+          try {
+            const { data, error } = await supabase.functions.invoke(
+              'fetch-url-metadata',
+              { body: { url } },
+            );
+            if (error) throw error;
+            const meta = (data ?? {}) as {
+              title?: string | null;
+              description?: string | null;
+              image?: string | null;
+              favicon?: string | null;
+              site_name?: string | null;
+              fetched_at?: string | null;
+            };
+
+            const target = findInsertedBlock();
+            if (target?.id) {
+              editor.updateBlock(target.id as unknown as string, {
+                type: 'bookmark',
+                props: {
+                  url,
+                  title: meta.title ?? '',
+                  description: meta.description ?? '',
+                  image: meta.image ?? '',
+                  favicon: meta.favicon ?? '',
+                  site_name: meta.site_name ?? '',
+                  fetched_at: meta.fetched_at ?? new Date().toISOString(),
+                },
+              } as unknown as PartialBlock);
+            }
+          } catch (err) {
+            console.error('fetch-url-metadata invoke error:', err);
+            toast.error(
+              'Nao foi possivel buscar o preview. Use "Atualizar preview" no bloco.',
+            );
+          }
+        }}
+      />
     </div>
   );
 };
