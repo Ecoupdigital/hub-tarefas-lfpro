@@ -1288,3 +1288,76 @@ export const useDuplicateBoardWithOptions = () => {
     },
   });
 };
+
+// ---- Synced Blocks (Fase 02-10) ----
+
+/**
+ * Cria um novo synced_block no workspace.
+ *
+ * Insere com `created_by = auth.uid()` (RLS espera o usuario seja workspace member).
+ * `content` recebe um array vazio ou um seed inicial (PartialBlock[]).
+ *
+ * Invalida a lista de synced_blocks do workspace pra que o picker
+ * dialog mostre o novo bloco imediatamente.
+ */
+export const useCreateSyncedBlock = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ workspaceId, content }: { workspaceId: string; content: unknown[] }) => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('Not authenticated');
+      const { data, error } = await supabase
+        .from('synced_blocks')
+        .insert({
+          workspace_id: workspaceId,
+          content: content as never,
+          created_by: user.user.id,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['synced-blocks-workspace', vars.workspaceId] });
+    },
+    onError: (error: Error) => {
+      console.error('useCreateSyncedBlock', error);
+      toast.error('Erro ao criar bloco sincronizado. Tente novamente.');
+    },
+  });
+};
+
+/**
+ * Atualiza o `content` de um synced_block.
+ *
+ * Last-write-wins no MVP (sem CRDT): cada save sobrescreve o array de blocos
+ * BlockNote serializado em JSON. Edicoes concorrentes em pages distintas podem
+ * sobrescrever uma a outra (aceito no MVP).
+ *
+ * Invalida a query individual (`synced-block:id`) pra que outros editores
+ * que renderizam o mesmo synced_block recebam o novo conteudo via realtime
+ * (sub do 02-11 vai fazer o invalidate; aqui garantimos o caminho local).
+ *
+ * NAO invalida a lista do workspace por padrao - alteracao de content
+ * nao muda a ordem visivel relevante (so updated_at, refetched em foco).
+ */
+export const useUpdateSyncedBlockContent = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, content }: { id: string; content: unknown[] }) => {
+      const { error } = await supabase
+        .from('synced_blocks')
+        .update({ content: content as never })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['synced-block', vars.id] });
+    },
+    onError: (error: Error) => {
+      console.error('useUpdateSyncedBlockContent', error);
+      // Nao mostra toast pra cada save debounced; loga apenas.
+    },
+  });
+};
