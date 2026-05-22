@@ -11,7 +11,16 @@ import { ptBR } from 'date-fns/locale';
 
 type CalView = 'month' | 'week';
 
-const BoardCalendar: React.FC = () => {
+interface BoardCalendarProps {
+  /**
+   * 'board' (default) usa container fullscreen `flex-1`.
+   * 'database' (Fase 02-06) usa container reduzido `max-h-[560px]` para
+   * renderizar dentro do bloco BlockNote `database`.
+   */
+  mode?: 'board' | 'database';
+}
+
+const BoardCalendar: React.FC<BoardCalendarProps> = ({ mode = 'board' }) => {
   const { activeBoard, setSelectedItem } = useApp();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calView, setCalView] = useState<CalView>('month');
@@ -49,10 +58,19 @@ const BoardCalendar: React.FC = () => {
     return activeBoard.groups.flatMap(g => g.items);
   }, [activeBoard]);
 
-  if (!activeBoard) return null;
+  if (!activeBoard) {
+    if (mode === 'database') {
+      return (
+        <div className="px-3 py-4 font-density-cell text-muted-foreground">
+          Carregando database...
+        </div>
+      );
+    }
+    return null;
+  }
   if (!dateCol) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className={mode === 'database' ? 'px-3 py-6 text-center' : 'flex-1 flex items-center justify-center'}>
         <p className="text-muted-foreground font-density-cell">Adicione uma coluna de data para usar a visualização Calendário.</p>
       </div>
     );
@@ -146,7 +164,13 @@ const BoardCalendar: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 overflow-auto p-4 bg-board-bg">
+    <div
+      className={
+        mode === 'database'
+          ? 'max-h-[560px] overflow-auto p-3 bg-board-bg rounded-md'
+          : 'flex-1 overflow-auto p-4 bg-board-bg'
+      }
+    >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <button onClick={() => nav(-1)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors"><ChevronLeft className="w-4 h-4" /></button>
