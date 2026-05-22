@@ -83,6 +83,23 @@ export const useUnsetDefaultBoardView = () => {
   });
 };
 
+// Update a saved view's `config` jsonb (visibleProps, filters, sort, etc.)
+export const useUpdateBoardViewConfig = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ viewId, config }: { viewId: string; config: Record<string, unknown> }) => {
+      const { error } = await supabase
+        .from('board_views')
+        .update({ config })
+        .eq('id', viewId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['board_views'] });
+    },
+  });
+};
+
 // Delete a saved view
 export const useDeleteBoardView = () => {
   const qc = useQueryClient();
