@@ -12,6 +12,7 @@ describe('WorkspaceEntry discriminated union', () => {
       folder_id: null,
       position: 0,
       workspace_id: 'ws1',
+      page_id: null,
     };
     if (entry.kind === 'board') {
       expect(entry.name).toBe('Board 1');
@@ -29,6 +30,8 @@ describe('WorkspaceEntry discriminated union', () => {
       folder_id: null,
       position: 0,
       workspace_id: 'ws1',
+      parent_id: null,
+      sort_order: 'a0',
     };
     if (entry.kind === 'page') {
       expect(entry.title).toBe('Pagina 1');

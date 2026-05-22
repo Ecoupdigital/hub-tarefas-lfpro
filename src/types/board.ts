@@ -23,6 +23,11 @@ export interface Board {
   color?: string;
   folder_id?: string | null;
   position: number;
+  /**
+   * Quando NOT NULL, este board e uma database inline ancorada na page (Fase 02).
+   * Quando NULL/undefined, board tradicional.
+   */
+  page_id?: string | null;
   groups: Group[];
   columns: Column[];
 }

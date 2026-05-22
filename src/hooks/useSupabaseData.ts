@@ -49,7 +49,7 @@ export const useBoards = (workspaceId?: string) =>
     enabled: !!workspaceId,
     staleTime: 2 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase.from('boards').select('id, name, state, workspace_id, icon, color, folder_id, position, created_at, updated_at').eq('workspace_id', workspaceId!).eq('state', 'active').order('position').order('created_at');
+      const { data, error } = await supabase.from('boards').select('id, name, state, workspace_id, icon, color, folder_id, position, page_id, created_at, updated_at').eq('workspace_id', workspaceId!).eq('state', 'active').order('position').order('created_at');
       if (error) throw error;
       return data ?? [];
     },
@@ -60,7 +60,7 @@ export const useAllBoards = () =>
     queryKey: ['all-boards'],
     staleTime: 2 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase.from('boards').select('id, name, state, workspace_id, icon, color, folder_id, position, created_at, updated_at').eq('state', 'active').order('position').order('created_at');
+      const { data, error } = await supabase.from('boards').select('id, name, state, workspace_id, icon, color, folder_id, position, page_id, created_at, updated_at').eq('state', 'active').order('position').order('created_at');
       if (error) throw error;
       return data ?? [];
     },
@@ -75,7 +75,7 @@ export const usePages = (workspaceId?: string) =>
     queryFn: async () => {
       const { data, error } = await supabase
         .from('pages')
-        .select('id, workspace_id, folder_id, title, state, icon, cover_url, position, created_by, created_at, updated_at')
+        .select('id, workspace_id, folder_id, title, state, icon, cover_url, position, parent_id, sort_order, created_by, created_at, updated_at')
         .eq('workspace_id', workspaceId!)
         .eq('state', 'active')
         .order('position')
@@ -92,7 +92,7 @@ export const useAllPages = () =>
     queryFn: async () => {
       const { data, error } = await supabase
         .from('pages')
-        .select('id, workspace_id, folder_id, title, state, icon, cover_url, position, created_by, created_at, updated_at')
+        .select('id, workspace_id, folder_id, title, state, icon, cover_url, position, parent_id, sort_order, created_by, created_at, updated_at')
         .eq('state', 'active')
         .order('position')
         .order('created_at');
@@ -113,7 +113,7 @@ export const usePage = (pageId?: string | null) =>
     queryFn: async () => {
       const { data, error } = await supabase
         .from('pages')
-        .select('id, workspace_id, folder_id, title, content, state, icon, cover_url, position, created_by, created_at, updated_at')
+        .select('id, workspace_id, folder_id, title, content, state, icon, cover_url, position, parent_id, sort_order, created_by, created_at, updated_at')
         .eq('id', pageId!)
         .single();
       if (error) throw error;
@@ -139,6 +139,7 @@ export const useWorkspaceEntries = (workspaceId?: string) => {
       folder_id: b.folder_id,
       position: b.position ?? 0,
       workspace_id: b.workspace_id!,
+      page_id: b.page_id ?? null,
     })),
     ...(pages.data ?? []).map((p) => ({
       kind: 'page' as const,
@@ -148,6 +149,8 @@ export const useWorkspaceEntries = (workspaceId?: string) => {
       folder_id: p.folder_id,
       position: p.position ?? 0,
       workspace_id: p.workspace_id!,
+      parent_id: p.parent_id ?? null,
+      sort_order: p.sort_order ?? 'a0',
     })),
   ].sort((a, b) => a.position - b.position);
   return { data, isLoading };
