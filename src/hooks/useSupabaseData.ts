@@ -102,6 +102,26 @@ export const useAllPages = () =>
   });
 
 /**
+ * Query para uma page individual (rota /page/:pageId).
+ * Retorna single (nao array). Consumidor pode cast content para PartialBlock[].
+ */
+export const usePage = (pageId?: string | null) =>
+  useQuery({
+    queryKey: ['page', pageId],
+    enabled: !!pageId,
+    staleTime: 30 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pages')
+        .select('id, workspace_id, folder_id, title, content, state, icon, cover_url, position, created_by, created_at, updated_at')
+        .eq('id', pageId!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+/**
  * Retorna entries mesclados (boards + pages) ordenados por position.
  * Consumido pelo AppSidebar para listar tudo do workspace junto.
  */
