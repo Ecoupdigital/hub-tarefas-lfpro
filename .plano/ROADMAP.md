@@ -55,7 +55,7 @@ Fases executam em ordem numérica: 1
 |-------|----------------|--------|-----------|
 | 0. Hub de Tarefas | N/A | Existing | - |
 | 1. Páginas estilo Notion | 9/9 | Complete | 2026-05-22 |
-| 2. Notion Database + Hierarquia + Blocos extras | 10/11 | In Progress | - |
+| 2. Notion Database + Hierarquia + Blocos extras | 11/11 | Complete | 2026-05-23 |
 
 ### Fase 2: Notion Database + Hierarquia + Blocos extras
 
@@ -89,4 +89,4 @@ Fases executam em ordem numérica: 1
 - [x] 02-08: `DatabaseViewTabs` + persistencia de view ativa
 - [x] 02-09: Edge Function `fetch-url-metadata` + Bloco Bookmark
 - [x] 02-10: Bloco Synced (synced_blocks)
-- [ ] 02-11: Permissoes + Realtime de synced_blocks (fechamento)
+- [x] 02-11: Permissoes + Realtime de synced_blocks (fechamento)
