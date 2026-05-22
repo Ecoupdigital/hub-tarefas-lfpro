@@ -51,7 +51,9 @@ const DatabaseViewRenderer: React.FC<Props> = ({ boardId, activeViewId }) => {
       {viewType === 'table' && <BoardTable mode="database" />}
       {viewType === 'kanban' && <BoardKanban mode="database" />}
       {viewType === 'calendar' && <BoardCalendar mode="database" />}
-      {viewType === 'list_detailed' && <DatabaseListView mode="database" />}
+      {viewType === 'list_detailed' && (
+        <DatabaseListView mode="database" activeViewId={activeView?.id ?? null} />
+      )}
     </DatabaseBoardContext>
   );
 };

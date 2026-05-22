@@ -90,7 +90,9 @@ export const useUpdateBoardViewConfig = () => {
     mutationFn: async ({ viewId, config }: { viewId: string; config: Record<string, unknown> }) => {
       const { error } = await supabase
         .from('board_views')
-        .update({ config })
+        // jsonb cast: Supabase types use a narrow Json union, mas o config aceita
+        // qualquer objeto serializavel (validamos no caller).
+        .update({ config: config as never })
         .eq('id', viewId);
       if (error) throw error;
     },
