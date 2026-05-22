@@ -46,6 +46,14 @@ export const useRealtimeSync = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'boards' }, () => {
         qc.invalidateQueries({ queryKey: ['boards'] });
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pages' }, (payload) => {
+        const pageId = (payload.new as any)?.id || (payload.old as any)?.id;
+        qc.invalidateQueries({ queryKey: ['pages'] });
+        qc.invalidateQueries({ queryKey: ['all-pages'] });
+        if (pageId) {
+          qc.invalidateQueries({ queryKey: ['page', pageId] });
+        }
+      })
       .subscribe();
 
     return () => {

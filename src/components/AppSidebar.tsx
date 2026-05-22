@@ -17,7 +17,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { useQueryClient } from '@tanstack/react-query';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useProfiles } from '@/hooks/useSupabaseData';
+import { useProfiles, useWorkspaceEntries } from '@/hooks/useSupabaseData';
+import type { WorkspaceEntry } from '@/types/page';
+import PageSidebarItem from '@/components/PageSidebarItem';
 import { prefetchMyWorkItems } from '@/hooks/useMyWorkItems';
 import {
   useDeleteBoard, useToggleFavorite, useRenameBoard,
@@ -114,11 +116,22 @@ const WorkspaceItem = React.memo(({ workspace, sidebarSearch, activeBoardId, ite
   const deleteWorkspace = useDeleteWorkspace();
   const updateWsAppearance = useUpdateWorkspaceAppearance();
 
+  // Boards (props vem do AppContext) + Pages (query propria) — ambos por workspace
+  const { data: workspaceEntries = [] } = useWorkspaceEntries(workspace.id);
+  const pageEntries: WorkspaceEntry[] = workspaceEntries.filter(
+    (e): e is Extract<WorkspaceEntry, { kind: 'page' }> => e.kind === 'page'
+  );
+
   const filteredBoards = sidebarSearch
     ? workspace.boards?.filter((b: any) => b.name.toLowerCase().includes(sidebarSearch.toLowerCase()))
     : workspace.boards;
 
-  const showWs = !sidebarSearch || filteredBoards?.length > 0 ||
+  const filteredPages = sidebarSearch
+    ? pageEntries.filter((p) =>
+        p.kind === 'page' && p.title.toLowerCase().includes(sidebarSearch.toLowerCase()))
+    : pageEntries;
+
+  const showWs = !sidebarSearch || filteredBoards?.length > 0 || filteredPages.length > 0 ||
     workspace.name.toLowerCase().includes(sidebarSearch.toLowerCase());
 
   if (!showWs) return null;
@@ -210,7 +223,7 @@ const WorkspaceItem = React.memo(({ workspace, sidebarSearch, activeBoardId, ite
         className="overflow-hidden transition-[grid-template-rows] duration-150 ease-out"
         style={{
           display: 'grid',
-          gridTemplateRows: expanded && filteredBoards?.length > 0 ? '1fr' : '0fr'
+          gridTemplateRows: expanded && (filteredBoards?.length > 0 || filteredPages.length > 0) ? '1fr' : '0fr'
         }}
       >
         <div className="min-h-0">
@@ -230,6 +243,22 @@ const WorkspaceItem = React.memo(({ workspace, sidebarSearch, activeBoardId, ite
               otherWorkspaces={otherWorkspaces}
               onMoveBoardToWorkspace={onMoveBoardToWorkspace}
             />
+            {/* Pages do workspace (lista direta, sem folder no MVP) */}
+            {filteredPages.length > 0 && (
+              <div className="density-space-y">
+                {filteredPages.map((entry) => {
+                  if (entry.kind !== 'page') return null;
+                  return (
+                    <PageSidebarItem
+                      key={`page-${entry.id}`}
+                      pageId={entry.id}
+                      title={entry.title}
+                      icon={entry.icon}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
