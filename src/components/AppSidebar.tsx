@@ -4,7 +4,7 @@ import {
   ChevronDown, ChevronRight, Home, Search, Star, X, Clock,
   Plus, LayoutDashboard, PanelLeftClose, PanelLeft, MoreHorizontal,
   Trash2, Copy, Pencil, Menu, Settings, FolderOpen,
-  Briefcase, ChevronsDownUp, ChevronsUpDown, GripVertical, Users
+  Briefcase, ChevronsDownUp, ChevronsUpDown, GripVertical, Users, FileText,
 } from 'lucide-react';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -70,6 +70,12 @@ interface WorkspaceItemProps {
  * cada uma como PageTreeItem recursivo. Lazy: a query so dispara quando
  * `enabled = true` (workspace expandido).
  *
+ * Envolve a arvore num DndContext escopado ao workspace. Drag/drop:
+ *  - Reordenar entre irmaos (drop sobre outra page = irmao depois dela)
+ *  - Aninhar (drop "dentro" = vira filho)
+ *  - Rejeita drop em database (id comeca com 'db-')
+ *  - Rejeita drop entre workspaces (workspaceId diferente)
+ *
  * Substitui a lista plana anterior de pages (PageSidebarItem) por uma
  * arvore expansivel. Databases inline aparecem como folhas dentro das pages
  * (PageTreeItem cuida disso).
@@ -79,22 +85,186 @@ const WorkspaceRootPages: React.FC<{
   expanded: boolean;
   searchQuery?: string;
 }> = ({ workspaceId, expanded, searchQuery }) => {
+  const qc = useQueryClient();
   const { data: rootPages = [] } = usePagesTree(workspaceId, null, expanded);
+  const reorderPage = useReorderPage();
+  const [activeDragNode, setActiveDragNode] = useState<PageTreeNode | null>(null);
+
+  // Sensor exige um threshold de 8px pra distinguir click de drag.
+  // Sem isso, click no titulo dispararia drag falsamente.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const data = event.active.data.current as { type?: string; pageId?: string } | undefined;
+    if (data?.type !== 'page' || !data.pageId) return;
+    // Procura o node em qualquer cache pages-tree pra exibir no overlay
+    const caches = qc.getQueriesData<PageTreeNode[]>({ queryKey: ['pages-tree'] });
+    for (const [, list] of caches) {
+      if (!Array.isArray(list)) continue;
+      const found = list.find((n) => n.id === data.pageId);
+      if (found) { setActiveDragNode(found); return; }
+    }
+    setActiveDragNode(null);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    setActiveDragNode(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const activeData = active.data.current as {
+      type?: string; pageId?: string; parentId?: string | null; workspaceId?: string;
+    } | undefined;
+    const overData = over.data.current as {
+      type?: string; pageId?: string; parentPageId?: string; parentId?: string | null; workspaceId?: string;
+    } | undefined;
+
+    if (!activeData || activeData.type !== 'page' || !activeData.pageId) return;
+    if (!overData) return;
+
+    // Validacao: rejeitar drop entre workspaces (MVP: so dentro do mesmo)
+    if (overData.workspaceId && activeData.workspaceId !== overData.workspaceId) {
+      toast.error('Nao e possivel mover pagina entre workspaces');
+      return;
+    }
+
+    // Validacao: rejeitar drop em database (id da droppable comeca com 'db-')
+    if (typeof over.id === 'string' && over.id.startsWith('db-')) {
+      toast.error('Nao e possivel aninhar pagina dentro de database');
+      return;
+    }
+
+    // Validacao: rejeitar drop circular (page dentro dela mesma)
+    if (overData.type === 'page-inside' && overData.parentPageId === activeData.pageId) {
+      toast.error('Nao e possivel mover uma pagina para dentro dela mesma');
+      return;
+    }
+
+    let newParentId: string | null;
+    let prevKey: string | null = null;
+    let nextKey: string | null = null;
+
+    if (overData.type === 'page-inside') {
+      // Drop "dentro" de outra page: vira filho dela; coloca no final
+      newParentId = overData.parentPageId ?? null;
+
+      // Validacao: rejeitar drop circular (page sobre descendente dela)
+      // (heuristica leve: verifica cache pages-tree[workspace, activeData.pageId]
+      // se existe, conferimos se overData.parentPageId esta na arvore abaixo)
+      if (isDescendantOf(qc, workspaceId, activeData.pageId, overData.parentPageId!)) {
+        toast.error('Nao e possivel mover uma pagina para dentro de uma filha dela');
+        return;
+      }
+
+      const siblings = qc.getQueryData<PageTreeNode[]>(['pages-tree', workspaceId, newParentId]) ?? [];
+      prevKey = siblings.length > 0 ? siblings[siblings.length - 1].sort_order : null;
+      nextKey = null;
+    } else if (overData.type === 'page') {
+      // Drop "entre" (sobre outra page no mesmo nivel): coloca apos overData.pageId
+      newParentId = overData.parentId ?? null;
+      const siblings = qc.getQueryData<PageTreeNode[]>(['pages-tree', workspaceId, newParentId]) ?? [];
+      const overIdx = siblings.findIndex((p) => p.id === overData.pageId);
+      if (overIdx === -1) return;
+      prevKey = siblings[overIdx].sort_order;
+      // Pula o proprio active se ele esta na lista (mesmo parent)
+      let nextIdx = overIdx + 1;
+      if (nextIdx < siblings.length && siblings[nextIdx].id === activeData.pageId) nextIdx += 1;
+      nextKey = siblings[nextIdx]?.sort_order ?? null;
+    } else {
+      return;
+    }
+
+    let newSortOrder: string;
+    try {
+      newSortOrder = keyBetween(prevKey, nextKey);
+    } catch (err) {
+      console.error('keyBetween falhou', err);
+      toast.error('Erro ao calcular nova posicao');
+      return;
+    }
+
+    const parentChanged = activeData.parentId !== newParentId;
+    try {
+      await reorderPage.mutateAsync({
+        pageId: activeData.pageId,
+        newSortOrder,
+        newParentId: parentChanged ? newParentId : undefined,
+      });
+    } catch {
+      // erro ja toasted pela mutation
+    }
+  };
+
   if (rootPages.length === 0) return null;
+
   return (
-    <div className="density-space-y">
-      {rootPages.map((page) => (
-        <PageTreeItem
-          key={`page-${page.id}`}
-          node={page}
-          workspaceId={workspaceId}
-          level={0}
-          searchQuery={searchQuery}
-        />
-      ))}
-    </div>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setActiveDragNode(null)}
+    >
+      <SortableContext
+        items={rootPages.map((p) => `page-${p.id}`)}
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="density-space-y">
+          {rootPages.map((page) => (
+            <PageTreeItem
+              key={`page-${page.id}`}
+              node={page}
+              workspaceId={workspaceId}
+              level={0}
+              searchQuery={searchQuery}
+            />
+          ))}
+        </div>
+      </SortableContext>
+      <DragOverlay>
+        {activeDragNode ? (
+          <div className="flex items-center px-2 py-1 bg-sidebar-accent rounded-md shadow-md border border-border text-sm font-density-cell">
+            <span className="flex-shrink-0 mr-2 inline-flex items-center justify-center w-3.5">
+              {activeDragNode.icon
+                ? <span className="text-sm leading-none">{activeDragNode.icon}</span>
+                : <FileText className="w-3.5 h-3.5" />}
+            </span>
+            <span className="truncate">{activeDragNode.title}</span>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 };
+
+/**
+ * Verifica se `targetId` e descendente de `ancestorId` na arvore de pages.
+ * Usado pra prevenir drop circular (page dentro de uma filha dela).
+ * Baseado nos caches pages-tree disponiveis (so detecta o que ja foi carregado).
+ */
+function isDescendantOf(
+  qc: ReturnType<typeof useQueryClient>,
+  workspaceId: string,
+  ancestorId: string,
+  targetId: string,
+): boolean {
+  if (ancestorId === targetId) return true;
+  const visited = new Set<string>();
+  const stack: string[] = [ancestorId];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    if (visited.has(current)) continue;
+    visited.add(current);
+    const children = qc.getQueryData<PageTreeNode[]>(['pages-tree', workspaceId, current]) ?? [];
+    for (const c of children) {
+      if (c.id === targetId) return true;
+      stack.push(c.id);
+    }
+  }
+  return false;
+}
 
 const SortableWorkspaceItem = (props: WorkspaceItemProps & { id: string }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.id });

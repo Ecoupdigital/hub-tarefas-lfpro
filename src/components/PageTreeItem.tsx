@@ -4,7 +4,7 @@ import {
   ChevronDown, ChevronRight, FileText, MoreHorizontal,
   Pencil, Trash2, Plus, GripVertical,
 } from 'lucide-react';
-import { useSortable } from '@dnd-kit/sortable';
+import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import {
@@ -240,18 +240,25 @@ const PageTreeItem: React.FC<PageTreeItemProps> = ({
         </DropdownMenu>
       </div>
 
-      {/* Filhos: subpages (recursivo) + databases (folhas) */}
+      {/* Filhos: subpages (recursivo) + databases (folhas).
+          SortableContext aninhado por nivel pra permitir reordenar entre irmaos
+          nesse nivel via dnd-kit. O DndContext esta na raiz (WorkspaceRootPages). */}
       {expanded && hasChildren && (
         <div className="density-space-y">
-          {childPages.map((child) => (
-            <PageTreeItem
-              key={`page-${child.id}`}
-              node={child}
-              workspaceId={workspaceId}
-              level={level + 1}
-              searchQuery={searchQuery}
-            />
-          ))}
+          <SortableContext
+            items={childPages.map((c) => `page-${c.id}`)}
+            strategy={verticalListSortingStrategy}
+          >
+            {childPages.map((child) => (
+              <PageTreeItem
+                key={`page-${child.id}`}
+                node={child}
+                workspaceId={workspaceId}
+                level={level + 1}
+                searchQuery={searchQuery}
+              />
+            ))}
+          </SortableContext>
           {childDatabases.map((db) => (
             <DatabaseSidebarItem
               key={`db-${db.id}`}
