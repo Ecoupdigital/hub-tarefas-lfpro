@@ -48,3 +48,6 @@ Thumbs.db
 .claude/settings.local.json
 .aios/install-log.txt
 .env
+
+# Supabase CLI transient state
+supabase/.temp/
