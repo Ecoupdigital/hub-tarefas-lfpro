@@ -1,4 +1,3 @@
-Initialising login role...
 export type Json =
   | string
   | number
@@ -1161,6 +1160,133 @@ export type Database = {
           },
         ]
       }
+      page_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          page_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          page_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          page_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_permissions_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      page_versions: {
+        Row: {
+          content: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          page_id: string
+          title: string | null
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          page_id: string
+          title?: string | null
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          page_id?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_versions_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pages: {
+        Row: {
+          content: Json
+          cover_url: string | null
+          created_at: string
+          created_by: string | null
+          folder_id: string | null
+          icon: string | null
+          id: string
+          position: number
+          state: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          content?: Json
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          folder_id?: string | null
+          icon?: string | null
+          id?: string
+          position?: number
+          state?: string
+          title?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          content?: Json
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          folder_id?: string | null
+          icon?: string | null
+          id?: string
+          position?: number
+          state?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pages_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1550,6 +1676,10 @@ export type Database = {
         Args: { _item_id: string; _user_id: string }
         Returns: boolean
       }
+      can_access_page: {
+        Args: { _page_id: string; _user_id: string }
+        Returns: boolean
+      }
       check_rate_limit: {
         Args: {
           p_action: string
@@ -1584,6 +1714,10 @@ export type Database = {
       }
       is_board_admin: {
         Args: { _board_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_page_admin: {
+        Args: { _page_id: string; _user_id: string }
         Returns: boolean
       }
       is_workspace_member: {
