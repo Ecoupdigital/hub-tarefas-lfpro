@@ -66,6 +66,73 @@ export const useAllBoards = () =>
     },
   });
 
+// ---- Pages ----
+export const usePages = (workspaceId?: string) =>
+  useQuery({
+    queryKey: ['pages', workspaceId],
+    enabled: !!workspaceId,
+    staleTime: 2 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pages')
+        .select('id, workspace_id, folder_id, title, state, icon, cover_url, position, created_by, created_at, updated_at')
+        .eq('workspace_id', workspaceId!)
+        .eq('state', 'active')
+        .order('position')
+        .order('created_at');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+export const useAllPages = () =>
+  useQuery({
+    queryKey: ['all-pages'],
+    staleTime: 2 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pages')
+        .select('id, workspace_id, folder_id, title, state, icon, cover_url, position, created_by, created_at, updated_at')
+        .eq('state', 'active')
+        .order('position')
+        .order('created_at');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+/**
+ * Retorna entries mesclados (boards + pages) ordenados por position.
+ * Consumido pelo AppSidebar para listar tudo do workspace junto.
+ */
+export const useWorkspaceEntries = (workspaceId?: string) => {
+  const boards = useBoards(workspaceId);
+  const pages = usePages(workspaceId);
+  const isLoading = boards.isLoading || pages.isLoading;
+  const data: import('@/types/page').WorkspaceEntry[] = [
+    ...(boards.data ?? []).map((b) => ({
+      kind: 'board' as const,
+      id: b.id,
+      name: b.name,
+      icon: b.icon,
+      color: b.color,
+      folder_id: b.folder_id,
+      position: b.position ?? 0,
+      workspace_id: b.workspace_id!,
+    })),
+    ...(pages.data ?? []).map((p) => ({
+      kind: 'page' as const,
+      id: p.id,
+      title: p.title,
+      icon: p.icon,
+      folder_id: p.folder_id,
+      position: p.position ?? 0,
+      workspace_id: p.workspace_id!,
+    })),
+  ].sort((a, b) => a.position - b.position);
+  return { data, isLoading };
+};
+
 // ---- Groups ----
 export const useGroups = (boardId?: string | null) =>
   useQuery({
