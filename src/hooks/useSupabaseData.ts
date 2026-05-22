@@ -302,6 +302,42 @@ export const useItemFull = (itemId?: string | null) =>
     },
   });
 
+/**
+ * useAllItemsForMention — busca cross-board de items para inserir @mention em PageEditor.
+ *
+ * RLS do Supabase ja restringe a items que o usuario pode acessar (can_access_item via policies).
+ * Retorna ate 20 resultados, prioridade pelos mais recentemente atualizados.
+ *
+ * @param query Texto digitado pelo usuario. Quando >= 2 chars aplica ilike no nome.
+ *              Vazio retorna os 20 items mais recentes (lista padrao do picker).
+ */
+export const useAllItemsForMention = (query: string) =>
+  useQuery({
+    queryKey: ['all-items-for-mention', query.trim()],
+    staleTime: 30 * 1000,
+    queryFn: async () => {
+      const q = query.trim();
+      let builder = supabase
+        .from('items')
+        .select('id, name, board_id, updated_at, boards!inner(name)')
+        .neq('state', 'deleted')
+        .is('parent_item_id', null)
+        .order('updated_at', { ascending: false })
+        .limit(20);
+      if (q.length >= 2) {
+        builder = builder.ilike('name', `%${q}%`);
+      }
+      const { data, error } = await builder;
+      if (error) throw error;
+      return (data ?? []).map((row: any) => ({
+        id: row.id as string,
+        name: row.name as string,
+        board_id: row.board_id as string,
+        board_name: (row.boards?.name as string) ?? '',
+      }));
+    },
+  });
+
 // ---- Column Values ----
 export const useColumnValues = (boardId?: string | null) =>
   useQuery({
