@@ -83,6 +83,142 @@ export const useCreateBoard = () => {
   });
 };
 
+/**
+ * Cria database inline ancorada numa page (boards.page_id = pageId).
+ *
+ * Sequencia transacional (com rollback do board se etapas seguintes falharem):
+ *  1. INSERT em boards com page_id = pageId, state='active'
+ *  2. INSERT em groups (1 grupo default "Itens")
+ *  3. INSERT em columns (3 colunas iniciais: Status, Data, Responsavel)
+ *  4. INSERT em board_views (4 views: Tabela, Kanban, Calendario, Lista detalhada)
+ *
+ * Retorna { boardId, viewIds, defaultViewId } para o consumidor inserir o bloco
+ * 'database' com props.boardId no editor.
+ *
+ * Status default: 3 labels (Pendente, Em andamento, Concluido).
+ *
+ * Em caso de falha pos-criacao do board, faz best-effort rollback marcando
+ * board como state='deleted' (soft delete) para nao deixar lixo orfao.
+ */
+export const useCreateDatabase = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: 1,
+    mutationFn: async ({
+      workspaceId,
+      pageId,
+      name,
+      icon,
+    }: {
+      workspaceId: string;
+      pageId: string;
+      name: string;
+      icon?: string;
+    }) => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('Not authenticated');
+
+      // 1. Board (database inline)
+      const { data: board, error: boardError } = await supabase
+        .from('boards')
+        .insert({
+          workspace_id: workspaceId,
+          name,
+          icon: icon ?? null,
+          state: 'active',
+          page_id: pageId,
+          created_by: user.user.id,
+        })
+        .select('id')
+        .single();
+      if (boardError) throw boardError;
+      const boardId = (board as { id: string }).id;
+
+      // Helper para rollback (soft delete) em caso de falha posterior.
+      const rollback = async () => {
+        await supabase.from('boards').update({ state: 'deleted' }).eq('id', boardId);
+      };
+
+      try {
+        // 2. Grupo default
+        const { error: groupError } = await supabase.from('groups').insert({
+          board_id: boardId,
+          title: 'Itens',
+          color: '#a89172', // warm gold LFPro
+          position: 0,
+          is_collapsed: false,
+        });
+        if (groupError) throw groupError;
+
+        // 3. Colunas iniciais (Status, Data, Responsavel)
+        const initialColumns = [
+          {
+            board_id: boardId,
+            column_type: 'status',
+            title: 'Status',
+            position: 0,
+            width: 140,
+            settings: {
+              labels: {
+                key1: { name: 'Pendente', color: '#9CA3AF' },
+                key2: { name: 'Em andamento', color: '#F59E0B' },
+                key3: { name: 'Concluido', color: '#10B981', isDone: true },
+              },
+            },
+          },
+          {
+            board_id: boardId,
+            column_type: 'date',
+            title: 'Data',
+            position: 1,
+            width: 120,
+            settings: {},
+          },
+          {
+            board_id: boardId,
+            column_type: 'people',
+            title: 'Responsavel',
+            position: 2,
+            width: 140,
+            settings: {},
+          },
+        ];
+        const { error: colError } = await supabase.from('columns').insert(initialColumns);
+        if (colError) throw colError;
+
+        // 4. 4 views (Tabela, Kanban, Calendario, Lista detalhada)
+        const initialViews = [
+          { board_id: boardId, name: 'Tabela', view_type: 'table', position: 0, is_default: true, config: {}, created_by: user.user.id },
+          { board_id: boardId, name: 'Kanban', view_type: 'kanban', position: 1, is_default: false, config: {}, created_by: user.user.id },
+          { board_id: boardId, name: 'Calendario', view_type: 'calendar', position: 2, is_default: false, config: {}, created_by: user.user.id },
+          { board_id: boardId, name: 'Lista detalhada', view_type: 'list_detailed', position: 3, is_default: false, config: { visibleProps: ['status', 'date', 'people'] }, created_by: user.user.id },
+        ];
+        const { data: views, error: viewError } = await supabase
+          .from('board_views')
+          .insert(initialViews)
+          .select('id, is_default');
+        if (viewError) throw viewError;
+
+        return {
+          boardId,
+          viewIds: (views ?? []).map((v) => v.id),
+          defaultViewId: (views ?? []).find((v) => v.is_default)?.id,
+        };
+      } catch (err) {
+        // Best-effort rollback: marca board como deleted para nao deixar orfao.
+        await rollback();
+        throw err;
+      }
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['boards'] });
+      qc.invalidateQueries({ queryKey: ['all-boards'] });
+      qc.invalidateQueries({ queryKey: ['databases-for-page', vars.pageId] });
+      qc.invalidateQueries({ queryKey: ['pages-tree'] });
+    },
+  });
+};
+
 export const useCreatePage = () => {
   const qc = useQueryClient();
   return useMutation({
