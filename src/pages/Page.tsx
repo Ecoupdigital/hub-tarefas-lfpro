@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { usePage } from '@/hooks/useSupabaseData';
+import { useCanEditPage } from '@/hooks/usePagePermissions';
 import PageEditor from '@/components/page/PageEditor';
 import PageHeader from '@/components/page/PageHeader';
+import PagePermissionsPanel from '@/components/page/PagePermissionsPanel';
 import { usePageAutoSave } from '@/components/page/usePageAutoSave';
 import LoadingScreen from '@/components/shared/LoadingScreen';
 import type { PartialBlock } from '@blocknote/core';
@@ -11,6 +13,8 @@ const PagePage: React.FC = () => {
   const { pageId } = useParams<{ pageId: string }>();
   const { data: page, isLoading, error } = usePage(pageId);
   const autoSave = usePageAutoSave({ pageId: pageId ?? '' });
+  const canEdit = useCanEditPage(pageId ?? null);
+  const [permissionsOpen, setPermissionsOpen] = useState(false);
 
   if (!pageId) {
     return <Navigate to="/" replace />;
@@ -50,14 +54,20 @@ const PagePage: React.FC = () => {
         pageId={page.id}
         initialTitle={page.title}
         saveStatus={autoSave.status}
+        onOpenPermissions={() => setPermissionsOpen(true)}
       />
       <div className="flex-1 overflow-y-auto py-8">
         <PageEditor
           initialContent={initialContent}
           onChange={(blocks) => autoSave.schedule(blocks)}
-          editable
+          editable={canEdit}
         />
       </div>
+      <PagePermissionsPanel
+        open={permissionsOpen}
+        onOpenChange={setPermissionsOpen}
+        pageId={page.id}
+      />
     </div>
   );
 };
