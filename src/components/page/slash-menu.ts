@@ -13,12 +13,17 @@ import type {
  * Handlers que o PageEditor injeta para abrir UIs custom
  * (popovers/modals) a partir de itens do slash menu.
  *
- * `onTriggerEmbedBoard` e opcional para que 01-05 (so mention) compile sem
- * precisar mexer aqui depois; 01-05b vai conectar o callback.
+ * Handlers opcionais sao condicionais: o item correspondente so e adicionado
+ * ao menu quando o PageEditor passa a callback. Isso permite usar o editor
+ * em contextos sem pageId/workspaceId (ex: previews) sem expor opcoes invalidas.
+ *
+ *  - `onTriggerEmbedBoard` (01-05b): embed read-only de board existente
+ *  - `onTriggerDatabase`   (02-05):  criar database inline na page atual
  */
 export interface SlashMenuHandlers {
   onTriggerMention: () => void;
   onTriggerEmbedBoard?: () => void;
+  onTriggerDatabase?: () => void;
 }
 
 /**
@@ -57,6 +62,16 @@ export function getCustomSlashMenuItems<
       aliases: ['embedar', 'embed', 'board', 'tabela'],
       group: 'LFPro',
       subtext: 'Inserir tabela read-only de um board',
+    });
+  }
+
+  if (handlers.onTriggerDatabase) {
+    customs.push({
+      title: 'Database',
+      onItemClick: () => handlers.onTriggerDatabase!(),
+      aliases: ['database', 'db', 'mini board', 'mini-board', 'tabela editavel', 'kanban', 'calendario'],
+      group: 'LFPro',
+      subtext: 'Inserir mini-board com Tabela, Kanban, Calendario e Lista detalhada',
     });
   }
 
