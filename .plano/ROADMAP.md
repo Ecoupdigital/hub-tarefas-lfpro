@@ -80,9 +80,9 @@ Fases executam em ordem numérica: 1
   15. Realtime sync: edições em databases/subpages refletem em outras abas
 **Plans**:
 - [x] 02-01: Schema fundacional (boards.page_id, pages.parent_id+sort_order, synced_blocks, view list_detailed) + tipos TS
-- [ ] 02-02: Onboarding/criação de database inline via slash menu
-- [ ] 02-03: Sidebar tree com `useWorkspaceTree` + drag/drop (`sort_order`)
-- [ ] 02-04: View Tabela em modo database (reuso `BoardTable`)
+- [x] 02-02: Sidebar tree expansivel (usePagesTree + PageTreeItem + DatabaseSidebarItem)
+- [ ] 02-03: Drag/drop na arvore com lexorank (`useReorderPage` + dnd-kit)
+- [x] 02-04: Subpages CRUD + breadcrumb + cascade delete (RPC `soft_delete_page_cascade`)
 - [ ] 02-05: View Kanban em modo database
 - [ ] 02-06: View Calendário em modo database
 - [ ] 02-07: View Lista detalhada (`DatabaseListView` novo)
