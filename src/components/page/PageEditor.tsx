@@ -34,7 +34,7 @@ export interface PageEditorProps {
 }
 
 /**
- * PageEditor — editor BlockNote tematizado para LFPro.
+ * PageEditor - editor BlockNote tematizado para LFPro.
  *
  * Componente uncontrolled (segue API do BlockNote): `initialContent` so e lido na
  * primeira renderizacao. Para atualizar externamente use `editor.replaceBlocks`.

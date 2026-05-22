@@ -303,7 +303,7 @@ export const useItemFull = (itemId?: string | null) =>
   });
 
 /**
- * useAllItemsForMention — busca cross-board de items para inserir @mention em PageEditor.
+ * useAllItemsForMention - busca cross-board de items para inserir @mention em PageEditor.
  *
  * RLS do Supabase ja restringe a items que o usuario pode acessar (can_access_item via policies).
  * Retorna ate 20 resultados, prioridade pelos mais recentemente atualizados.
