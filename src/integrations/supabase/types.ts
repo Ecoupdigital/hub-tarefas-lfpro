@@ -510,6 +510,7 @@ export type Database = {
           id: string
           name: string
           owner_id: string | null
+          page_id: string | null
           position: number | null
           settings: Json | null
           state: string | null
@@ -526,6 +527,7 @@ export type Database = {
           id?: string
           name: string
           owner_id?: string | null
+          page_id?: string | null
           position?: number | null
           settings?: Json | null
           state?: string | null
@@ -542,6 +544,7 @@ export type Database = {
           id?: string
           name?: string
           owner_id?: string | null
+          page_id?: string | null
           position?: number | null
           settings?: Json | null
           state?: string | null
@@ -554,6 +557,13 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "workspace_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boards_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
             referencedColumns: ["id"]
           },
           {
@@ -1236,7 +1246,9 @@ export type Database = {
           folder_id: string | null
           icon: string | null
           id: string
+          parent_id: string | null
           position: number
+          sort_order: string
           state: string
           title: string
           updated_at: string
@@ -1250,7 +1262,9 @@ export type Database = {
           folder_id?: string | null
           icon?: string | null
           id?: string
+          parent_id?: string | null
           position?: number
+          sort_order?: string
           state?: string
           title?: string
           updated_at?: string
@@ -1264,7 +1278,9 @@ export type Database = {
           folder_id?: string | null
           icon?: string | null
           id?: string
+          parent_id?: string | null
           position?: number
+          sort_order?: string
           state?: string
           title?: string
           updated_at?: string
@@ -1276,6 +1292,13 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "workspace_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pages_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
             referencedColumns: ["id"]
           },
           {
@@ -1355,6 +1378,41 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      synced_blocks: {
+        Row: {
+          content: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "synced_blocks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       team_members: {
         Row: {
@@ -1678,6 +1736,10 @@ export type Database = {
       }
       can_access_page: {
         Args: { _page_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_access_synced_block: {
+        Args: { _synced_block_id: string; _user_id: string }
         Returns: boolean
       }
       check_rate_limit: {
