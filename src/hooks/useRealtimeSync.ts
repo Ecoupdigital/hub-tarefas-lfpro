@@ -76,6 +76,20 @@ export const useRealtimeSync = () => {
           qc.invalidateQueries({ queryKey: ['page_versions', pageId] });
         }
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'synced_blocks' }, (payload) => {
+        // Synced block (Fase 02): conteudo compartilhado entre pages do mesmo workspace.
+        // Invalida cache individual (todos os blocos `synced` que referenciam este id
+        // refetcham via useSyncedBlock) + cache da lista por workspace (picker dialog).
+        const id = (payload.new as any)?.id || (payload.old as any)?.id;
+        const workspaceId =
+          (payload.new as any)?.workspace_id || (payload.old as any)?.workspace_id;
+        if (id) {
+          qc.invalidateQueries({ queryKey: ['synced-block', id] });
+        }
+        if (workspaceId) {
+          qc.invalidateQueries({ queryKey: ['synced-blocks-workspace', workspaceId] });
+        }
+      })
       .subscribe();
 
     return () => {
