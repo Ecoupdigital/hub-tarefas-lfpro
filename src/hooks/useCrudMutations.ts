@@ -82,6 +82,99 @@ export const useCreateBoard = () => {
   });
 };
 
+export const useCreatePage = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: 1,
+    mutationFn: async ({
+      workspaceId,
+      title,
+      icon,
+    }: {
+      workspaceId: string;
+      title: string;
+      icon?: string;
+    }) => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('Not authenticated');
+
+      // Posicionar no final usando mesma logica de useCreateBoard
+      const { data: lastPage } = await supabase
+        .from('pages')
+        .select('position')
+        .eq('workspace_id', workspaceId)
+        .eq('state', 'active')
+        .order('position', { ascending: false })
+        .limit(1);
+      const maxPosition = lastPage?.[0]?.position ?? 0;
+
+      const { data, error } = await supabase
+        .from('pages')
+        .insert({
+          workspace_id: workspaceId,
+          title,
+          icon: icon ?? null,
+          content: [],
+          position: maxPosition + 1000,
+          created_by: user.user.id,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pages'] });
+      qc.invalidateQueries({ queryKey: ['all-pages'] });
+    },
+  });
+};
+
+export const useDeletePage = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: 1,
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('pages')
+        .update({ state: 'deleted' })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pages'] });
+      qc.invalidateQueries({ queryKey: ['all-pages'] });
+    },
+    onError: (error: Error) => {
+      toast.error('Erro ao excluir pagina. Tente novamente.');
+      console.error('useDeletePage', error);
+    },
+  });
+};
+
+export const useRenamePage = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: 1,
+    mutationFn: async ({ pageId, title }: { pageId: string; title: string }) => {
+      const { error } = await supabase
+        .from('pages')
+        .update({ title })
+        .eq('id', pageId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pages'] });
+      qc.invalidateQueries({ queryKey: ['all-pages'] });
+      qc.invalidateQueries({ queryKey: ['page'] });
+    },
+    onError: (error: Error) => {
+      toast.error('Erro ao renomear pagina. Tente novamente.');
+      console.error('useRenamePage', error);
+    },
+  });
+};
+
 export const useCreateGroup = () => {
   const qc = useQueryClient();
   return useMutation({
