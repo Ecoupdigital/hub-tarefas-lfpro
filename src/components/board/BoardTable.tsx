@@ -151,6 +151,24 @@ const BoardTable: React.FC<BoardTableProps> = ({ mode = 'board' }) => {
     return map;
   }, [activeBoard, boardDeps]);
 
+  // Flatten all item IDs across groups for range selection (parent + interleaved subitems).
+  // Declared BEFORE the early return below to keep hook count stable across renders
+  // (React #310 fix: when mounted in DatabaseBlock, activeBoard is null on first render).
+  const allItemIds = useMemo(() => {
+    if (!activeBoard) return [];
+    const ids: string[] = [];
+    for (const group of activeBoard.groups) {
+      for (const item of group.items) {
+        ids.push(item.id);
+        const subs = allSubitems.filter((s: any) => s.parent_item_id === item.id);
+        for (const sub of subs) {
+          ids.push(sub.id);
+        }
+      }
+    }
+    return ids;
+  }, [activeBoard, allSubitems]);
+
   if (!activeBoard) {
     // Em mode='database', boardId vem via DatabaseBoardContext: se activeBoard
     // ainda nao chegou, mostra placeholder compacto em vez do CTA "selecione na sidebar".
@@ -336,22 +354,6 @@ const BoardTable: React.FC<BoardTableProps> = ({ mode = 'board' }) => {
   const handleDragOver = (_event: DragOverEvent) => {
     // Visual feedback is handled by the DroppableGroup component via isOver
   };
-
-  // Flatten all item IDs across groups for range selection
-  // Flatten all IDs: parent items + their subitems (interleaved for range selection)
-  const allItemIds = useMemo(() => {
-    const ids: string[] = [];
-    for (const group of activeBoard.groups) {
-      for (const item of group.items) {
-        ids.push(item.id);
-        const subs = allSubitems.filter((s: any) => s.parent_item_id === item.id);
-        for (const sub of subs) {
-          ids.push(sub.id);
-        }
-      }
-    }
-    return ids;
-  }, [activeBoard.groups, allSubitems]);
 
   // No-results empty state when filters are active
   const hasFiltersActive = activeFilterCount > 0;
