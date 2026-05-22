@@ -40,7 +40,8 @@ Plans:
 - [x] 01-02: Integração BlockNote no projeto (instalar, tematizar com tokens LFPro, base do editor)
 - [x] 01-03: Tipo "Página" no `CreateBoardModal` + sidebar mista (lista boards + pages)
 - [x] 01-04: CRUD de página (criar, abrir, editar, auto-save debounced, soft delete, restore)
-- [ ] 01-05: Extensões customizadas BlockNote (mention de item, embed de board, slash items custom)
+- [x] 01-05: Extensões customizadas BlockNote — mention de item + slash menu pt-BR
+- [ ] 01-05b: Embed de board read-only (block spec separado, escopo dividido de 01-05)
 - [ ] 01-06: Permissões de página (PagePermissionsPanel espelhando BoardPermissionsPanel)
 - [ ] 01-07: Versões / histórico (`page_versions`, painel de histórico, restore)
 - [ ] 01-08: Presence + realtime sync da página + image upload no bucket `attachments`
@@ -53,4 +54,4 @@ Fases executam em ordem numérica: 1
 | Fase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Hub de Tarefas | N/A | Existing | - |
-| 1. Páginas estilo Notion | 4/8 | In Progress | - |
+| 1. Páginas estilo Notion | 5/9 | In Progress | - |
