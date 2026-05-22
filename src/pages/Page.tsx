@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { usePage } from '@/hooks/useSupabaseData';
 import { useCanEditPage } from '@/hooks/usePagePermissions';
@@ -28,6 +28,36 @@ const PagePage: React.FC = () => {
   const canEdit = useCanEditPage(pageId ?? null);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+
+  // Anti-overwrite: quando outro usuario salva (ou nos mesmos saimos e voltamos),
+  // a query `usePage` invalida e retorna content novo. Re-aplicamos no editor
+  // APENAS se nao houver edicao local pendente. Sem isso, o usuario perderia
+  // o que esta digitando agora.
+  const lastUpdatedAtRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!page) return;
+    if (lastUpdatedAtRef.current === null) {
+      lastUpdatedAtRef.current = page.updated_at;
+      return;
+    }
+    if (page.updated_at === lastUpdatedAtRef.current) return;
+    lastUpdatedAtRef.current = page.updated_at;
+
+    // Aceitar incoming so quando nao ha mudancas locais pendentes.
+    // status === 'saving' tambem bloqueia (nosso save in-flight pode ter
+    // gerado o update que voltou via realtime).
+    const safeToReplace =
+      autoSave.status === 'idle' || autoSave.status === 'saved';
+    if (!safeToReplace) return;
+
+    const editor = editorRef.current as {
+      document: unknown[];
+      replaceBlocks: (existing: unknown[], next: unknown[]) => void;
+    } | null;
+    if (editor && Array.isArray(page.content)) {
+      editor.replaceBlocks(editor.document, page.content as unknown[]);
+    }
+  }, [page, autoSave.status]);
 
   if (!pageId) {
     return <Navigate to="/" replace />;
