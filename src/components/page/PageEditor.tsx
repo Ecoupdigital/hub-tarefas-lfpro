@@ -12,6 +12,7 @@ import { lfproBlockNoteLightTheme, lfproBlockNoteDarkTheme } from './blocknote-t
 import { lfproBlockNoteSchema } from './blocknote-schema';
 import { getCustomSlashMenuItems } from './slash-menu';
 import ItemPickerPopover from './blocks/ItemPickerPopover';
+import BoardPickerPopover from './blocks/BoardPickerPopover';
 
 // Imports de CSS obrigatorios do BlockNote.
 // Nao remover. Os overrides finos vivem em src/styles/blocknote-overrides.css.
@@ -54,6 +55,7 @@ const PageEditor: React.FC<PageEditorProps> = ({
 }) => {
   const { resolvedTheme } = useTheme();
   const [mentionOpen, setMentionOpen] = useState(false);
+  const [embedBoardOpen, setEmbedBoardOpen] = useState(false);
 
   const editor = useCreateBlockNote({
     schema: lfproBlockNoteSchema,
@@ -95,6 +97,7 @@ const PageEditor: React.FC<PageEditorProps> = ({
             filterSuggestionItems(
               getCustomSlashMenuItems(editor, {
                 onTriggerMention: () => setMentionOpen(true),
+                onTriggerEmbedBoard: () => setEmbedBoardOpen(true),
               }),
               query,
             )
@@ -113,6 +116,27 @@ const PageEditor: React.FC<PageEditorProps> = ({
             },
             ' ',
           ]);
+        }}
+      />
+
+      <BoardPickerPopover
+        open={embedBoardOpen}
+        onOpenChange={setEmbedBoardOpen}
+        onSelect={(board) => {
+          const cursor = editor.getTextCursorPosition();
+          // Cast generico: o type 'embed-board' vem do schema custom mas o
+          // insertBlocks com generics estritos pediria propagar tipos pesados
+          // do BlockNote pra consumidores externos. Mantemos seguro via schema.
+          editor.insertBlocks(
+            [
+              {
+                type: 'embed-board',
+                props: { boardId: board.id, snapshotName: board.name },
+              },
+            ] as unknown as PartialBlock[],
+            cursor.block,
+            'after',
+          );
         }}
       />
     </div>
