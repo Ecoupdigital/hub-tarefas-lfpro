@@ -7,7 +7,7 @@ Hub colaborativo LFPro evolui de gestor de tarefas (boards + items) para platafo
 ## Fases
 
 - [x] **Fase 0: Hub de Tarefas (existente)** - Boards multi-view, items, permissões, automações, formulários, etc.
-- [ ] **Fase 1: Páginas estilo Notion (Docs Mode)** - Adicionar formato página rich-text via BlockNote, com cross-link a items.
+- [x] **Fase 1: Páginas estilo Notion (Docs Mode)** - Adicionar formato página rich-text via BlockNote, com cross-link a items.
 
 ## Detalhes das Fases
 
@@ -42,9 +42,9 @@ Plans:
 - [x] 01-04: CRUD de página (criar, abrir, editar, auto-save debounced, soft delete, restore)
 - [x] 01-05: Extensões customizadas BlockNote — mention de item + slash menu pt-BR
 - [x] 01-05b: Embed de board read-only (block spec separado, escopo dividido de 01-05)
-- [ ] 01-06: Permissões de página (PagePermissionsPanel espelhando BoardPermissionsPanel)
-- [ ] 01-07: Versões / histórico (`page_versions`, painel de histórico, restore)
-- [ ] 01-08: Presence + realtime sync da página + image upload no bucket `attachments`
+- [x] 01-06: Permissões de página (PagePermissionsPanel espelhando BoardPermissionsPanel)
+- [x] 01-07: Versões / histórico (`page_versions`, painel de histórico, restore)
+- [x] 01-08: Presence + realtime sync da página + image upload no bucket `attachments`
 
 ## Progress
 
@@ -54,4 +54,4 @@ Fases executam em ordem numérica: 1
 | Fase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Hub de Tarefas | N/A | Existing | - |
-| 1. Páginas estilo Notion | 6/9 | In Progress | - |
+| 1. Páginas estilo Notion | 9/9 | Complete | 2026-05-22 |
