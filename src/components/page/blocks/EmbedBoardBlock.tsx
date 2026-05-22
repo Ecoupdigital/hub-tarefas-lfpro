@@ -161,11 +161,11 @@ function useEmbedBoardData(boardId: string) {
 
 /**
  * Renderiza o valor de uma celula no embed (read-only, simplificado).
- * NAO interativo — apenas exibicao textual/visual minima.
+ * NAO interativo - apenas exibicao textual/visual minima.
  */
 function CellRender({ column, value }: { column: EmbedColumn; value: unknown }) {
   if (value === null || value === undefined || value === '') {
-    return <span className="text-muted-foreground/60">—</span>;
+    return <span className="text-muted-foreground/60">-</span>;
   }
 
   switch (column.type) {
@@ -197,7 +197,7 @@ function CellRender({ column, value }: { column: EmbedColumn; value: unknown }) 
 
     case 'date': {
       const dateStr = typeof value === 'string' ? value : null;
-      if (!dateStr) return <span className="text-muted-foreground/60">—</span>;
+      if (!dateStr) return <span className="text-muted-foreground/60">-</span>;
       try {
         const d = new Date(dateStr);
         if (Number.isNaN(d.getTime())) return <span>{dateStr}</span>;
@@ -210,7 +210,7 @@ function CellRender({ column, value }: { column: EmbedColumn; value: unknown }) 
     case 'people': {
       // value pode ser array de user ids ou objeto; mostramos contagem
       if (Array.isArray(value)) {
-        if (value.length === 0) return <span className="text-muted-foreground/60">—</span>;
+        if (value.length === 0) return <span className="text-muted-foreground/60">-</span>;
         return (
           <span className="text-xs text-muted-foreground">
             {value.length} pessoa{value.length === 1 ? '' : 's'}
@@ -238,7 +238,7 @@ function CellRender({ column, value }: { column: EmbedColumn; value: unknown }) 
     case 'progress':
     case 'auto_number': {
       const n = typeof value === 'number' ? value : Number(value);
-      if (Number.isNaN(n)) return <span className="text-muted-foreground/60">—</span>;
+      if (Number.isNaN(n)) return <span className="text-muted-foreground/60">-</span>;
       return <span className="text-xs tabular-nums">{n}</span>;
     }
 
@@ -254,7 +254,7 @@ function CellRender({ column, value }: { column: EmbedColumn; value: unknown }) 
         typeof value === 'object' && value !== null
           ? ((value as { url?: string }).url ?? '')
           : String(value);
-      if (!link) return <span className="text-muted-foreground/60">—</span>;
+      if (!link) return <span className="text-muted-foreground/60">-</span>;
       return (
         <span className="text-xs text-primary truncate max-w-[140px] inline-block align-middle">
           {link}
