@@ -55,6 +55,7 @@ Fases executam em ordem numérica: 1
 |-------|----------------|--------|-----------|
 | 0. Hub de Tarefas | N/A | Existing | - |
 | 1. Páginas estilo Notion | 9/9 | Complete | 2026-05-22 |
+| 2. Notion Database + Hierarquia + Blocos extras | 1/11 | In Progress | - |
 
 ### Fase 2: Notion Database + Hierarquia + Blocos extras
 
@@ -77,4 +78,15 @@ Fases executam em ordem numérica: 1
   13. Bloco "Synced Block" no slash menu: cria bloco que pode ser referenciado em outras pages; editar em um lugar reflete em todos
   14. Permissões: databases herdam permissões da page pai. Subpáginas têm permissões próprias (espelham pages MVP)
   15. Realtime sync: edições em databases/subpages refletem em outras abas
-**Plans**: TBD
+**Plans**:
+- [x] 02-01: Schema fundacional (boards.page_id, pages.parent_id+sort_order, synced_blocks, view list_detailed) + tipos TS
+- [ ] 02-02: Onboarding/criação de database inline via slash menu
+- [ ] 02-03: Sidebar tree com `useWorkspaceTree` + drag/drop (`sort_order`)
+- [ ] 02-04: View Tabela em modo database (reuso `BoardTable`)
+- [ ] 02-05: View Kanban em modo database
+- [ ] 02-06: View Calendário em modo database
+- [ ] 02-07: View Lista detalhada (`DatabaseListView` novo)
+- [ ] 02-08: Bloco Bookmark + Edge Function `fetch-url-metadata`
+- [ ] 02-09: Bloco Synced + hook `useSyncedBlock`
+- [ ] 02-10: Subpáginas (criar/mover/deletar com cascade UX)
+- [ ] 02-11: Realtime sync da árvore + canais `synced_blocks`/`pages` parent_id
