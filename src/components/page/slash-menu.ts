@@ -20,12 +20,14 @@ import type {
  *  - `onTriggerEmbedBoard` (01-05b): embed read-only de board existente
  *  - `onTriggerDatabase`   (02-05):  criar database inline na page atual
  *  - `onTriggerBookmark`   (02-09):  inserir card de preview a partir de uma URL
+ *  - `onTriggerSyncedBlock` (02-10): inserir bloco sincronizado (criar ou referenciar)
  */
 export interface SlashMenuHandlers {
   onTriggerMention: () => void;
   onTriggerEmbedBoard?: () => void;
   onTriggerDatabase?: () => void;
   onTriggerBookmark?: () => void;
+  onTriggerSyncedBlock?: () => void;
 }
 
 /**
@@ -84,6 +86,16 @@ export function getCustomSlashMenuItems<
       aliases: ['bookmark', 'link', 'url', 'preview', 'card', 'site'],
       group: 'LFPro',
       subtext: 'Inserir card com preview de uma URL (titulo, descricao, imagem)',
+    });
+  }
+
+  if (handlers.onTriggerSyncedBlock) {
+    customs.push({
+      title: 'Bloco sincronizado',
+      onItemClick: () => handlers.onTriggerSyncedBlock!(),
+      aliases: ['bloco sincronizado', 'sincronizado', 'synced', 'sync', 'compartilhado', 'shared'],
+      group: 'LFPro',
+      subtext: 'Inserir bloco de conteudo compartilhado entre pages do workspace',
     });
   }
 

@@ -8,6 +8,7 @@ import { MentionInlineContent } from './blocks/MentionInlineContent';
 import { EmbedBoardBlock } from './blocks/EmbedBoardBlock';
 import { DatabaseBlock } from './blocks/DatabaseBlock';
 import { BookmarkBlock } from './blocks/BookmarkBlock';
+import { SyncedBlock } from './blocks/SyncedBlock';
 
 /**
  * Schema customizado do BlockNote para o LFPro Tasks.
@@ -17,6 +18,7 @@ import { BookmarkBlock } from './blocks/BookmarkBlock';
  *  - block `embed-board` (mini-view read-only de board, 01-05b)
  *  - block `database` (database inline ancorada na page, 02-05)
  *  - block `bookmark` (card de preview de URL com metadata cacheada, 02-09)
+ *  - block `synced` (mini-editor compartilhado entre pages do workspace, 02-10)
  *
  * Para registrar novos blocks/inline content, criar specs em ./blocks/
  * e adicionar nos maps abaixo. Tipos sao inferidos automaticamente.
@@ -26,6 +28,7 @@ import { BookmarkBlock } from './blocks/BookmarkBlock';
 const embedBoardSpec = EmbedBoardBlock();
 const databaseSpec = DatabaseBlock();
 const bookmarkSpec = BookmarkBlock();
+const syncedSpec = SyncedBlock();
 
 export const lfproBlockNoteSchema = BlockNoteSchema.create({
   blockSpecs: {
@@ -33,6 +36,7 @@ export const lfproBlockNoteSchema = BlockNoteSchema.create({
     'embed-board': embedBoardSpec,
     'database': databaseSpec,
     'bookmark': bookmarkSpec,
+    'synced': syncedSpec,
   },
   inlineContentSpecs: {
     ...defaultInlineContentSpecs,

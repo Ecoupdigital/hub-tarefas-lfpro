@@ -16,6 +16,7 @@ import ItemPickerPopover from './blocks/ItemPickerPopover';
 import BoardPickerPopover from './blocks/BoardPickerPopover';
 import CreateDatabaseDialog from './CreateDatabaseDialog';
 import UrlPromptDialog from './blocks/UrlPromptDialog';
+import SyncedBlockPickerDialog from './blocks/SyncedBlockPickerDialog';
 import { usePageImageUpload } from './usePageImageUpload';
 import { usePage } from '@/hooks/useSupabaseData';
 import { supabase } from '@/integrations/supabase/client';
@@ -78,6 +79,7 @@ const PageEditor: React.FC<PageEditorProps> = ({
   const [embedBoardOpen, setEmbedBoardOpen] = useState(false);
   const [databaseDialogOpen, setDatabaseDialogOpen] = useState(false);
   const [bookmarkPromptOpen, setBookmarkPromptOpen] = useState(false);
+  const [syncedDialogOpen, setSyncedDialogOpen] = useState(false);
 
   // Lookup do workspace via pageId pra passar pro CreateDatabaseDialog.
   // Quando pageId esta ausente (preview/uso fora da rota /page/:id), o item
@@ -147,6 +149,9 @@ const PageEditor: React.FC<PageEditorProps> = ({
                 onTriggerDatabase:
                   pageId && workspaceId ? () => setDatabaseDialogOpen(true) : undefined,
                 onTriggerBookmark: () => setBookmarkPromptOpen(true),
+                // Synced block requer workspaceId (RLS scope). Sem workspace,
+                // ocultamos o item do slash menu pra evitar erros de RLS.
+                onTriggerSyncedBlock: workspaceId ? () => setSyncedDialogOpen(true) : undefined,
               }),
               query,
             )
@@ -204,6 +209,29 @@ const PageEditor: React.FC<PageEditorProps> = ({
                 {
                   type: 'database',
                   props: { boardId, snapshotName: name },
+                },
+              ] as unknown as PartialBlock[],
+              cursor.block,
+              'after',
+            );
+          }}
+        />
+      )}
+
+      {workspaceId && (
+        <SyncedBlockPickerDialog
+          open={syncedDialogOpen}
+          onOpenChange={setSyncedDialogOpen}
+          workspaceId={workspaceId}
+          onSelect={(syncedBlockId) => {
+            const cursor = editor.getTextCursorPosition();
+            // Cast pelo mesmo motivo dos outros blocos custom: mantemos a API
+            // publica do componente sem propagar generics pesados do BlockNote.
+            editor.insertBlocks(
+              [
+                {
+                  type: 'synced',
+                  props: { synced_block_id: syncedBlockId },
                 },
               ] as unknown as PartialBlock[],
               cursor.block,
