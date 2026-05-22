@@ -1,18 +1,18 @@
 ---
-current_phase: 03
-current_plan: 03-07
-last_session: 2026-05-22T17:56:04Z
-phases_complete: [00, 01, 02]
-phases_in_progress: [03]
+current_phase: 04
+current_plan: TBD
+last_session: 2026-05-22T18:03:00Z
+phases_complete: [00, 01, 02, 03]
+phases_in_progress: []
 ---
 
 # UP State — hub-tarefas-lfpro
 
 ## Posição Atual
 
-- **Fase ativa:** 03 — Views Notion-style com toggle de estilo
-- **Próximo plano (sequencial):** 03-07 (QA cross-view + polish final)
-- **Último plano executado:** 03-04 — NotionKanbanView completo (substitui stub 03-02, drag entre status + cards limpos). 4 commits, 5 tarefas (4 auto + 1 human-verify auto-PASS), tsc/vitest 212/212 limpos.
+- **Fase ativa:** nenhuma (Fase 03 fechada)
+- **Próximo plano (sequencial):** TBD (Fase 04 a planejar)
+- **Último plano executado:** 03-07 — Hardening + testes de isolamento + smoke final (REQ-27, REQ-28). 3 commits, 5 tarefas (4 auto + 1 human-verify auto-PASS), 7 testes novos (3 paleta-guard + 4 smoke integration), vitest 219/219, build limpo.
 
 ## Progresso por Fase
 
@@ -21,7 +21,7 @@ phases_in_progress: [03]
 | 00 — Hub de Tarefas | Existing | N/A |
 | 01 — Páginas estilo Notion | Complete | 9/9 |
 | 02 — Notion Database + Hierarquia + Blocos extras | Complete | 11/11 |
-| 03 — Views Notion-style com toggle de estilo | In Progress | 8/8 |
+| 03 — Views Notion-style com toggle de estilo | Complete | 8/8 |
 
 ## Decisões Recentes
 
@@ -60,11 +60,16 @@ phases_in_progress: [03]
 - **03-04:** Coluna `__none__` (Sem status) auto-hide se vazia — Notion so mostra "No Status" quando ha items orfaos.
 - **03-04:** Empty state explicito quando board nao tem coluna status — mensagem orientativa em vez de tela em branco.
 - **03-04:** `useKanbanStatusGroup` puro (useMemo, sem mutations) — derivado de activeBoard + statusColumnId, testavel sem QueryClient.
+- **03-07:** Regex word-boundary `(?<![-\w])token(?![-\w])` no paleta-test — sem isso, `text-primary` casaria substring de `--notion-text-primary` (falso positivo legítimo).
+- **03-07:** Smoke test filename `.tsx` (não `.ts` como no plano) — JSX em `.ts` não transpila sem config extra; `.tsx` funciona out-of-the-box.
+- **03-07:** Task 3 (ajustes pós-paleta-test) no-op — planos 03-03..06 já seguem paleta cinza, 0 violações detectadas.
+- **03-07:** Mock mínimo de activeBoard (1 grupo + 1 item + 3 colunas status/date/people) cobre os 3 tipos que toda NotionView consome.
+- **03-07:** Smoke sem testar dnd-kit — exige PointerEvent polyfill + fake timers, fora do escopo do smoke.
 
 ## Sessão Atual
 
-- **Iniciada:** 2026-05-22T17:40:40Z
-- **Última ação:** Completou plano 03-04 (NotionKanbanView — substitui stub, drag entre status + cards limpos). 4 commits, 5 tarefas (4 auto + 1 human-verify auto-PASS), tsc limpo, 212/212 testes.
+- **Iniciada:** 2026-05-22T17:59:52Z
+- **Última ação:** Completou plano 03-07 (Hardening + testes de isolamento + smoke final). 3 commits, 5 tarefas (4 auto + 1 human-verify auto-PASS), 7 testes novos (3 paleta-guard + 4 smoke integration), vitest 219/219, build limpo. **Fase 03 fechada.**
 
 ## Performance Metrics
 
@@ -75,3 +80,4 @@ phases_in_progress: [03]
 - **03-05:** 134s, 6 tarefas (5 auto + 1 human-verify auto-PASS), 4 arquivos criados, 1 modificado, 0 testes novos, 5 commits
 - **03-06:** 97s, 3 tarefas (2 auto + 1 human-verify auto-PASS), 1 arquivo criado, 1 modificado, 0 testes novos, 2 commits
 - **03-04:** 171s, 5 tarefas (4 auto + 1 human-verify auto-PASS), 3 arquivos criados, 1 modificado, 0 testes novos, 4 commits
+- **03-07:** 207s, 5 tarefas (4 auto + 1 human-verify auto-PASS), 3 arquivos criados, 0 modificados, 7 testes novos (3 paleta + 4 smoke), 3 commits
