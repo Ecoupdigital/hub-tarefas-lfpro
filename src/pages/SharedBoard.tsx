@@ -3,14 +3,13 @@ import { useParams } from 'react-router-dom';
 import { usePublicBoardByToken } from '@/hooks/useBoardShares';
 import { Input } from '@/components/ui/input';
 import { AlertCircle, Loader2, Lock, Shield } from 'lucide-react';
-import { hashPassword } from '@/utils/hashUtils';
 
 const SharedBoard: React.FC = () => {
   const { token } = useParams<{ token: string }>();
-  const { data, isLoading, error } = usePublicBoardByToken(token);
   const [passwordInput, setPasswordInput] = useState('');
-  const [authenticated, setAuthenticated] = useState(false);
-  const [passwordError, setPasswordError] = useState(false);
+  const [submittedPassword, setSubmittedPassword] = useState<string | undefined>(undefined);
+  const { data, isLoading, error } = usePublicBoardByToken(token, submittedPassword);
+  const passwordError = data?.status === 'wrong_password';
 
   if (isLoading) {
     return (
@@ -48,17 +47,11 @@ const SharedBoard: React.FC = () => {
     );
   }
 
-  // Password check — use has_password flag, verify against internal _passwordHash
-  if (data.share?.has_password && !authenticated) {
-    const handlePasswordSubmit = async (e: React.FormEvent) => {
+  // Senha verificada no servidor (RPC): re-fetch ao submeter.
+  if (data.status === 'password_required' || data.status === 'wrong_password') {
+    const handlePasswordSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      const hashed = await hashPassword(passwordInput);
-      if (hashed === data.share!._passwordHash) {
-        setAuthenticated(true);
-        setPasswordError(false);
-      } else {
-        setPasswordError(true);
-      }
+      setSubmittedPassword(passwordInput);
     };
 
     return (
@@ -76,7 +69,7 @@ const SharedBoard: React.FC = () => {
               <Input
                 type="password"
                 value={passwordInput}
-                onChange={e => { setPasswordInput(e.target.value); setPasswordError(false); }}
+                onChange={e => setPasswordInput(e.target.value)}
                 placeholder="Senha"
                 autoFocus
               />
@@ -91,6 +84,17 @@ const SharedBoard: React.FC = () => {
               </button>
             </form>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (data.status !== 'ok') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <div className="text-center space-y-3">
+          <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto" />
+          <h2 className="text-xl font-semibold text-foreground">Link invalido</h2>
         </div>
       </div>
     );

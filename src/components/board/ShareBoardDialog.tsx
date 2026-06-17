@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/select';
 import { Copy, Trash2, Plus, Link2, Shield, Clock, Lock } from 'lucide-react';
 import { toast } from 'sonner';
-import { hashPassword } from '@/utils/hashUtils';
 
 interface ShareBoardDialogProps {
   open: boolean;
@@ -37,17 +36,12 @@ const ShareBoardDialog: React.FC<ShareBoardDialogProps> = ({ open, onOpenChange,
       expiresAt = now.toISOString();
     }
 
-    let passwordHash: string | null = null;
-    if (password.trim()) {
-      passwordHash = await hashPassword(password.trim());
-    }
-
     try {
       await createShare.mutateAsync({
         boardId,
         permission,
         expiresAt,
-        passwordHash,
+        password: password.trim() || null,
       });
       toast.success('Link de compartilhamento criado!');
       setShowCreate(false);

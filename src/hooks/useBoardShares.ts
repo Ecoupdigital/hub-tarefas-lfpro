@@ -20,7 +20,7 @@ export const useBoardShares = (boardId: string | null) => useQuery({
   },
 });
 
-// Create a share link
+// Create a share link (RPC: token seguro server-side + senha bcrypt no banco)
 export const useCreateBoardShare = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -28,18 +28,14 @@ export const useCreateBoardShare = () => {
       boardId: string;
       permission: string;
       expiresAt: string | null;
-      passwordHash: string | null;
+      password: string | null;
     }) => {
-      const { data: user } = await supabase.auth.getUser();
-      const token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-      const { data, error } = await supabase.from('board_shares').insert({
-        board_id: params.boardId,
-        permission: params.permission,
-        expires_at: params.expiresAt,
-        password_hash: params.passwordHash,
-        token,
-        created_by: user.user?.id || null,
-      }).select().single();
+      const { data, error } = await (supabase as any).rpc('create_board_share', {
+        p_board_id: params.boardId,
+        p_permission: params.permission,
+        p_expires_at: params.expiresAt,
+        p_password: params.password || null,
+      });
       if (error) throw error;
       return data;
     },
@@ -63,83 +59,28 @@ export const useDeleteBoardShare = () => {
   });
 };
 
-// Fetch board data by share token (public, no auth)
-export const usePublicBoardByToken = (token: string | undefined) => useQuery({
-  queryKey: ['public_board', token],
+// Fetch board data by share token (public, no auth) via RPC SECURITY DEFINER.
+// A RPC valida token + expiração + senha (bcrypt) no servidor e retorna o board.
+// `password` so e enviado quando o board e protegido (re-fetch ao digitar).
+export const usePublicBoardByToken = (token: string | undefined, password?: string) => useQuery({
+  queryKey: ['public_board', token, password ?? null],
   enabled: !!token,
+  retry: false,
   queryFn: async () => {
-    // Fetch the share record
-    const { data: shareRaw, error: shareError } = await supabase
-      .from('board_shares')
-      .select('id, board_id, token, permission, expires_at, password_hash, created_by, created_at')
-      .eq('token', token!)
-      .maybeSingle();
-    if (shareError) throw shareError;
-    if (!shareRaw) return { status: 'not_found' as const };
-
-    // Strip the raw hash — expose only a boolean flag + keep hash for verification only
-    const { password_hash, ...shareFields } = shareRaw;
-    const share = { ...shareFields, has_password: !!password_hash, _passwordHash: password_hash };
-
-    // Check expiration
-    if (share.expires_at && new Date(share.expires_at) < new Date()) {
-      return { status: 'expired' as const, share };
-    }
-
-    // Fetch board
-    const { data: board, error: boardError } = await supabase
-      .from('boards')
-      .select('*')
-      .eq('id', share.board_id)
-      .single();
-    if (boardError) throw boardError;
-
-    // Fetch groups
-    const { data: groups, error: groupsError } = await supabase
-      .from('groups')
-      .select('*')
-      .eq('board_id', share.board_id)
-      .order('position');
-    if (groupsError) throw groupsError;
-
-    // Fetch columns
-    const { data: columns, error: columnsError } = await supabase
-      .from('columns')
-      .select('*')
-      .eq('board_id', share.board_id)
-      .order('position');
-    if (columnsError) throw columnsError;
-
-    // Fetch items
-    const { data: items, error: itemsError } = await supabase
-      .from('items')
-      .select('*')
-      .eq('board_id', share.board_id)
-      .is('parent_item_id', null)
-      .neq('state', 'deleted')
-      .order('position');
-    if (itemsError) throw itemsError;
-
-    // Fetch column values
-    const itemIds = (items ?? []).map(i => i.id);
-    let columnValues: any[] = [];
-    if (itemIds.length > 0) {
-      const { data: cv, error: cvError } = await supabase
-        .from('column_values')
-        .select('*')
-        .in('item_id', itemIds);
-      if (cvError) throw cvError;
-      columnValues = cv ?? [];
-    }
-
-    return {
-      status: 'ok' as const,
-      share,
-      board,
-      groups: groups ?? [],
-      columns: columns ?? [],
-      items: items ?? [],
-      columnValues,
+    const { data, error } = await (supabase as any).rpc('get_shared_board', {
+      p_token: token!,
+      p_password: password ?? null,
+    });
+    if (error) throw error;
+    // { status: 'ok'|'not_found'|'expired'|'password_required'|'wrong_password', ... }
+    return data as {
+      status: 'ok' | 'not_found' | 'expired' | 'password_required' | 'wrong_password';
+      share?: { permission: string; expires_at: string | null; has_password: boolean };
+      board?: any;
+      groups?: any[];
+      columns?: any[];
+      items?: any[];
+      columnValues?: any[];
     };
   },
 });
